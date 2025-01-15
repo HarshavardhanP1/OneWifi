@@ -228,6 +228,144 @@ BOOL IsWiFiApStatsEnable(UINT uvAPIndex)
     return ((sWiFiDmlApStatsEnableCfg[uvAPIndex]) ? TRUE : FALSE);
 }
 
+telemetry_data_t *create_wpa3_sta_data_hash_map(hash_map_t *sta_map, mac_addr_t l_sta_mac) {
+ 
+    pthread_mutex_lock(&g_monitor_module.data_lock);
+    mac_addr_str_t mac_str = { 0 };
+    telemetry_data_t *sta = NULL;
+
+    sta = (telemetry_data_t *)malloc(sizeof(telemetry_data_t));
+    if (sta == NULL) {
+        wifi_util_error_print(WIFI_MON, "%s:%d malloc allocation failure\r\n", __func__, __LINE__);
+        pthread_mutex_unlock(&g_monitor_module.data_lock);
+        return NULL;
+    }
+    memset(sta, 0, sizeof(telemetry_data_t));
+    memcpy(sta->sta_mac, l_sta_mac, sizeof(mac_addr_t));
+    char *mac_str_dup = strdup(to_mac_str(l_sta_mac, mac_str));
+    if (mac_str_dup == NULL) {
+        wifi_util_error_print(WIFI_MON, "%s:%d strdup allocation failure\r\n", __func__, __LINE__);
+        free(sta);
+        pthread_mutex_unlock(&g_monitor_module.data_lock);
+        return NULL;
+    }
+    hash_map_put(sta_map, mac_str_dup, sta);
+    wifi_util_info_print(WIFI_MON, "Created STA entry for MAC: %s\r\n", mac_str_dup);
+    pthread_mutex_unlock(&g_monitor_module.data_lock);
+    return sta;
+}
+
+hash_map_t *get_wpa3_sta_data_map(unsigned int vap_index) {
+ 
+    pthread_mutex_lock(&g_monitor_module.data_lock);
+    unsigned int vap_array_index;
+    char vap_name[32] = {0};
+    convert_vap_index_to_name(&((wifi_mgr_t *)get_wifimgr_obj())->hal_cap.wifi_prop, vap_index, vap_name);
+    if (strlen(vap_name) <= 0) {
+        wifi_util_error_print(WIFI_MON, "%s:%d wrong vap_index:%d\r\n", __func__, __LINE__, vap_index);
+        pthread_mutex_unlock(&g_monitor_module.data_lock);
+        return NULL;
+    }
+    getVAPArrayIndexFromVAPIndex(vap_index, &vap_array_index);
+    pthread_mutex_unlock(&g_monitor_module.data_lock);
+    wifi_util_info_print(WIFI_MON, "Retrieved STA data map for VAP index: %d\r\n", vap_index);
+    return g_monitor_module.bssid_data[vap_array_index].wpa3_sta_map;
+}
+
+int set_wpa3_assoc_frame_data(frame_data_t *msg) {
+ 
+    hash_map_t *sta_map;
+    telemetry_data_t *sta;
+    struct ieee80211_mgmt *frame;
+    mac_addr_str_t mac_str = { 0 };
+    char *str;
+    time_t frame_timestamp;
+    wifi_util_info_print(WIFI_MON, "%s:%d Harsha started\r\n", __func__, __LINE__);
+    frame = (struct ieee80211_mgmt *)msg->data;
+    str = to_mac_str(frame->sa, mac_str);
+    if (str == NULL) {
+        wifi_util_error_print(WIFI_MON, "%s:%d mac str convert failure\r\n", __func__, __LINE__);
+        return RETURN_ERR;
+    }
+
+    wifi_util_dbg_print(WIFI_MON, "%s:%d wifi mgmt frame message: ap_index:%d length:%d type:%d dir:%d src mac:%s rssi:%d\r\n", __func__, __LINE__, msg->frame.ap_index, msg->frame.len, msg->frame.type, msg->frame.dir, str, msg->frame.sig_dbm);
+
+    sta_map = get_wpa3_sta_data_map(msg->frame.ap_index);
+    if (sta_map == NULL) {
+        wifi_util_error_print(WIFI_MON, "%s:%d sta_data map not found for vap_index:%d\r\n", __func__, __LINE__, msg->frame.ap_index);
+        return RETURN_ERR;
+    }
+
+    sta = (telemetry_data_t *)hash_map_get(sta_map, mac_str);
+    if (sta == NULL) {
+	 
+        sta = create_wpa3_sta_data_hash_map(sta_map, frame->sa);
+        if (sta == NULL) {
+		 
+            return RETURN_ERR;
+        }
+    }
+    memset(sta, 0, sizeof(telemetry_data_t));
+    sta->expected_akm_count = 24;
+    sta->less_than_expected_akm_count = 24;
+    time(&frame_timestamp);
+    memcpy(&sta->connection_time, &frame_timestamp, sizeof(frame_timestamp));
+    wifi_util_info_print(WIFI_MON, "Updated STA entry for MAC: %s\r\n", str);
+    wifi_util_info_print(WIFI_MON, "%s:%d Harsha done\r\n", __func__, __LINE__);
+    return RETURN_OK;
+}
+
+int update_wpa3_sta_data(unsigned int vap_index) {
+ 
+    hash_map_t *sta_map;
+    telemetry_data_t *sta;
+    time_t current_timestamp;
+    mac_addr_str_t mac_str = { 0 };
+
+    sta_map = get_wpa3_sta_data_map(vap_index);
+    wifi_util_info_print(WIFI_MON, "%s:%d Harsha started\r\n", __func__, __LINE__);
+    if (sta_map == NULL) {
+        wifi_util_error_print(WIFI_MON, "%s:%d Harsha sta_data map not found for vap_index:%d\r\n", __func__, __LINE__, vap_index);
+        return RETURN_ERR;
+    }
+
+    sta = hash_map_get_first(sta_map);
+    while (sta != NULL) {
+        if (sta->connection_time != 0) {
+            time(&current_timestamp);
+
+            wifi_util_dbg_print(WIFI_MON, "%s:%d connection time:%ld, current time:%ld\r\n", __func__, __LINE__, sta->connection_time, current_timestamp);
+            wifi_util_dbg_print(WIFI_MON, "%s:%d vap_index:%d sta_mac:%s\r\n", __func__, __LINE__, vap_index, to_mac_str(sta->sta_mac, mac_str));
+            if ((current_timestamp - sta->connection_time) > MAX_ASSOC_FRAME_REFRESH_PERIOD) {
+                wifi_util_dbg_print(WIFI_MON, "%s:%d harsha time diff:%d\r\n", __func__, __LINE__, (current_timestamp - sta->connection_time));
+                memset(sta, 0, sizeof(telemetry_data_t));
+            }
+        }
+        sta = hash_map_get_next(sta_map, sta);
+    }
+    wifi_util_info_print(WIFI_MON, "%s:%d Harsha done\r\n", __func__, __LINE__);
+    return RETURN_OK;
+}
+
+void update_wpa3_sta_all_vap_data_entry(void) {
+ 
+    unsigned int index, vap_index;
+    wifi_util_info_print(WIFI_MON, "%s:%d Harsha started\r\n", __func__, __LINE__);
+    wifi_mgr_t *mgr = get_wifimgr_obj();
+    for (index = 0; index < getTotalNumberVAPs(); index++) {
+        vap_index = VAP_INDEX(mgr->hal_cap, index);
+        update_wpa3_sta_data(vap_index);
+    }
+    wifi_util_info_print(WIFI_MON, "%s:%d Harsha done\r\n", __func__, __LINE__);
+}
+
+static int refresh_wpa3_sta_entry(void *arg) {
+ 
+    update_wpa3_sta_all_vap_data_entry();
+    wifi_util_info_print(WIFI_MON, "%s:%d Harsha started and done\r\n", __func__, __LINE__);
+    return TIMER_TASK_COMPLETE;
+}
+
 int harvester_get_associated_device_info(int vap_index, char **harvester_buf)
 {
     unsigned int pos = 0;
@@ -849,6 +987,7 @@ int set_assoc_req_frame_data(frame_data_t *msg)
             return RETURN_ERR;
         }
     }
+    set_wpa3_assoc_frame_data(msg);
     (void)memset(&sta->assoc_frame_data, 0, sizeof(assoc_req_elem_t));
     (void)memcpy(&sta->assoc_frame_data.msg_data, msg, sizeof(frame_data_t));
     (void)time(&frame_timestamp);
@@ -904,6 +1043,28 @@ static int refresh_assoc_frame_entry(void *arg)
 {
     update_assoc_frame_all_vap_data_entry();
     return TIMER_TASK_COMPLETE;
+}
+
+int set_sta_client_mode(int ap_index, char *mac, int mode)
+{ 
+    hash_map_t   *sta_map;
+    sta_data_t   *sta;
+    sta_map = get_sta_data_map(ap_index);
+    if (sta_map == NULL) {
+        wifi_util_error_print(WIFI_MON,"%s:%d harsha sta_data map not found for vap_index:%d\r\n", __func__, __LINE__, ap_index);
+        return RETURN_ERR;
+    }
+
+    sta = (sta_data_t *)hash_map_get(sta_map, mac);
+    if (NULL == sta)
+    {
+        wifi_util_error_print(WIFI_MON,"%s:%d harsha station is not found for vap_index:%d station :%s \r\n", __func__, __LINE__, ap_index,mac);
+        return RETURN_OK;
+    }
+    sta->assoc_akm=mode;
+    sta->eapol_akm=0;
+    wifi_util_error_print(WIFI_MON,"%s:%d harsha station found for vap_index:%d station :%s and set the mode:%d mode:%d \r\n", __func__, __LINE__, ap_index,mac,mode,sta->assoc_akm);
+    return RETURN_OK;
 }
 
 void process_deauthenticate	(unsigned int ap_index, auth_deauth_dev_t *dev)
@@ -2530,6 +2691,8 @@ static void get_client_assoc_frame(int ap_index, wifi_associated_dev_t *associat
             memcpy(&assoc_data->sta_data, &sta->assoc_frame_data, sizeof(assoc_req_elem_t));
             wifi_util_dbg_print(WIFI_MON,"%s:%d assoc_frame_data of length:%d copied\n",
                 __func__, __LINE__, sta->assoc_frame_data.msg_data.frame.len);
+            wifi_util_dbg_print(WIFI_MON,"%s:%d sta found for mac:%s harsha stationmode:%d eapomode:%d \n", __func__, __LINE__, mac_addr,sta->assoc_akm,sta->eapol_akm);
+
             return;
         } else {
             wifi_util_error_print(WIFI_MON,"%s:%d assoc req frame not found for vap_index:%d: sta_mac:%s time:%ld\r\n",
@@ -2748,6 +2911,15 @@ int init_wifi_monitor()
         }
     }
 
+    for (i = 0; i < getTotalNumberVAPs(); i++) {
+        g_monitor_module.bssid_data[i].wpa3_sta_map = hash_map_create();
+        if (g_monitor_module.bssid_data[i].wpa3_sta_map == NULL) {
+            deinit_wifi_monitor();
+            wifi_util_error_print(WIFI_MON, "wpa3_sta_map create error\n");
+            return -1;
+        }
+    }
+
     g_monitor_module.queue = queue_create();
     if (g_monitor_module.queue == NULL) {
         deinit_wifi_monitor();
@@ -2812,8 +2984,9 @@ int init_wifi_monitor()
     wifi_hal_apDisassociatedDevice_callback_register(device_disassociated);
     wifi_hal_radius_eap_failure_callback_register(radius_eap_failure_callback);
     wifi_hal_radiusFallback_failover_callback_register(radius_fallback_and_failover_callback);
+    wifi_hal_stamode_callback_register(set_sta_client_mode);
     scheduler_add_timer_task(g_monitor_module.sched, FALSE, NULL, refresh_assoc_frame_entry, NULL, (MAX_ASSOC_FRAME_REFRESH_PERIOD * 1000), 0, FALSE);
-
+    scheduler_add_timer_task(g_monitor_module.sched, FALSE, NULL, refresh_wpa3_sta_entry, NULL, (MAX_ASSOC_FRAME_REFRESH_PERIOD * 1000), 0, FALSE); //checking
     wifi_util_dbg_print(WIFI_MON, "%s:%d Wi-Fi monitor is initialized successfully\n", __func__, __LINE__);
 
     return 0;
@@ -2886,6 +3059,8 @@ void deinit_wifi_monitor()
 {
     unsigned int i;
     sta_data_t *sta, *temp_sta;
+    telemetry_data_t *stat,*temp_stat;
+    mac_addr_str_t mac_str = { 0 };
     char key[64] = {0};
     hash_map_t *collector_list = NULL;
 #ifdef MQTTCM
@@ -2934,6 +3109,23 @@ void deinit_wifi_monitor()
                 }
             }
             hash_map_destroy(g_monitor_module.bssid_data[i].sta_map);
+        }
+    }
+
+    for (i = 0; i < getTotalNumberVAPs(); i++) {
+        if(g_monitor_module.bssid_data[i].wpa3_sta_map != NULL) {
+            stat = hash_map_get_first(g_monitor_module.bssid_data[i].wpa3_sta_map);
+            while (stat != NULL) {
+                memset(key, 0, sizeof(key));
+                to_sta_key(stat->sta_mac, key);
+                wifi_util_info_print(WIFI_MON, "Harsha Processing STA with MAC: %s\r\n", to_mac_str(stat->sta_mac, mac_str));
+                stat = hash_map_get_next(g_monitor_module.bssid_data[i].wpa3_sta_map, stat);
+                temp_stat = hash_map_remove(g_monitor_module.bssid_data[i].wpa3_sta_map, key);
+                if (temp_stat != NULL) {
+                    free(temp_stat);
+                }
+            }
+            hash_map_destroy(g_monitor_module.bssid_data[i].wpa3_sta_map);
         }
     }
 
