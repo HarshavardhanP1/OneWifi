@@ -2652,10 +2652,14 @@ ie_parse_rsn(const uint8_t *ie, size_t len, assoc_dev_data_t *data)
         wifi_util_error_print(WIFI_MON, "%s:%d Wrong key_mgmt count[%d]. left/4[%d]\n", __func__, __LINE__, cnt, left/RSN_SELECTOR_LEN);
         return;
     }
-
-    memset(data->conn_security.wpa_key_mgmt, 0, sizeof(data->conn_security.wpa_key_mgmt));
-    get_key_mgmt(pos, data->conn_security.wpa_key_mgmt, sizeof(data->conn_security.wpa_key_mgmt));
-    wifi_util_dbg_print(WIFI_MON, "%s:%d key_mgmt[%s]\n", __func__, __LINE__, data->conn_security.wpa_key_mgmt);
+    for (i = 0; i < cnt; i++)
+    {
+        memset(data->conn_security.wpa_key_mgmt, 0, sizeof(data->conn_security.wpa_key_mgmt));
+        get_key_mgmt(pos, data->conn_security.wpa_key_mgmt, sizeof(data->conn_security.wpa_key_mgmt));
+        wifi_util_dbg_print(WIFI_MON, "%s:%d Harsha key_mgmt[%s]\n", __func__, __LINE__, data->conn_security.wpa_key_mgmt);
+        pos += RSN_SELECTOR_LEN;
+        left -= RSN_SELECTOR_LEN;
+    }
 }
 
 static void parse_assoc_ies(const uint8_t *ies, size_t ies_len, assoc_dev_data_t *data)
