@@ -343,6 +343,7 @@ int update_wpa3_sta_data(unsigned int vap_index) {
 	            wifi_util_dbg_print(WIFI_MON, "%s:%d harsha raw sta_mac: %02x:%02x:%02x:%02x:%02x:%02x\r\n",__func__, __LINE__, sta->sta_mac[0], sta->sta_mac[1], sta->sta_mac[2], sta->sta_mac[3], sta->sta_mac[4], sta->sta_mac[5]);
                     wifi_util_dbg_print(WIFI_MON, "%s:%d harsha time diff:%d\r\n", __func__, __LINE__, (current_timestamp - sta->connection_time));
                     memset(sta, 0, sizeof(telemetry_data_t));
+		}
             }
         }
         sta = hash_map_get_next(sta_map, sta);
