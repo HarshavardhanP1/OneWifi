@@ -3060,7 +3060,7 @@ void deinit_wifi_monitor()
     unsigned int i;
     sta_data_t *sta, *temp_sta;
     telemetry_data_t *stat,*temp_stat;
-    mac_addr_str_t mac_str = { 0 };
+    mac_addr_str_t mac_stri = { 0 };
     char key[64] = {0};
     hash_map_t *collector_list = NULL;
 #ifdef MQTTCM
@@ -3118,7 +3118,7 @@ void deinit_wifi_monitor()
             while (stat != NULL) {
                 memset(key, 0, sizeof(key));
                 to_sta_key(stat->sta_mac, key);
-                wifi_util_info_print(WIFI_MON, "Harsha Processing STA with MAC: %s\r\n", to_mac_str(stat->sta_mac, mac_str));
+                wifi_util_info_print(WIFI_MON, "Harsha Processing STA with MAC: %s\r\n", to_mac_str(stat->sta_mac, mac_stri));
                 stat = hash_map_get_next(g_monitor_module.bssid_data[i].wpa3_sta_map, stat);
                 temp_stat = hash_map_remove(g_monitor_module.bssid_data[i].wpa3_sta_map, key);
                 if (temp_stat != NULL) {
