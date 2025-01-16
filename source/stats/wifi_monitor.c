@@ -333,10 +333,11 @@ int update_wpa3_sta_data(unsigned int vap_index) {
     while (sta != NULL) {
         if (sta->connection_time != 0) {
             time(&current_timestamp);
-
+            
             wifi_util_dbg_print(WIFI_MON, "%s:%d connection time:%ld, current time:%ld\r\n", __func__, __LINE__, sta->connection_time, current_timestamp);
             wifi_util_dbg_print(WIFI_MON, "%s:%d vap_index:%d sta_mac:%s\r\n", __func__, __LINE__, vap_index, to_mac_str(sta->sta_mac, mac_str));
             if ((current_timestamp - sta->connection_time) > MAX_ASSOC_FRAME_REFRESH_PERIOD) {
+	        wifi_util_dbg_print(WIFI_MON, "%s:%d harsha raw sta_mac: %02x:%02x:%02x:%02x:%02x:%02x\r\n",__func__, __LINE__, sta->sta_mac[0], sta->sta_mac[1], sta->sta_mac[2], sta->sta_mac[3], sta->sta_mac[4], sta->sta_mac[5]);
                 wifi_util_dbg_print(WIFI_MON, "%s:%d harsha time diff:%d\r\n", __func__, __LINE__, (current_timestamp - sta->connection_time));
                 memset(sta, 0, sizeof(telemetry_data_t));
             }
