@@ -145,7 +145,7 @@ bool monitor_initialization_done;
 static events_monitor_t g_events_monitor;
 
 int harvester_get_associated_device_info(int vap_index, char **harvester_buf);
-
+hash_map_t *get_sta_data_map(unsigned int vap_index);
 extern void* bus_handle;
 //extern char g_Subsystem[32];
 //#define SINGLE_CLIENT_WIFI_AVRO_FILENAME "WifiSingleClient.avsc"
@@ -278,6 +278,7 @@ int set_wpa3_assoc_frame_data(frame_data_t *msg) {
     telemetry_data_t *sta;
     struct ieee80211_mgmt *frame;
     mac_addr_str_t mac_str = { 0 };
+    mac_address_t zero_mac = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
     char *str;
     time_t frame_timestamp;
     wifi_util_info_print(WIFI_MON, "%s:%d Harsha started\r\n", __func__, __LINE__);
@@ -297,7 +298,7 @@ int set_wpa3_assoc_frame_data(frame_data_t *msg) {
     }
 
     sta = (telemetry_data_t *)hash_map_get(sta_map, mac_str);
-    if (sta == NULL) {
+    if (sta == NULL || memcmp(sta->sta_mac, zero_mac, sizeof(mac_address_t)) == 0) {
 	 
         sta = create_wpa3_sta_data_hash_map(sta_map, frame->sa);
         if (sta == NULL) {
@@ -317,13 +318,15 @@ int set_wpa3_assoc_frame_data(frame_data_t *msg) {
 int update_wpa3_sta_data(unsigned int vap_index) {
  
     hash_map_t *sta_map;
+    hash_map_t *sta_map1;
     telemetry_data_t *sta;
     time_t current_timestamp;
     mac_addr_str_t mac_str = { 0 };
 
     sta_map = get_wpa3_sta_data_map(vap_index);
+    sta_map1 = get_sta_data_map(vap_index);
     wifi_util_info_print(WIFI_MON, "%s:%d Harsha started\r\n", __func__, __LINE__);
-    if (sta_map == NULL) {
+    if (sta_map == NULL || sta_map1 == NULL) {
         wifi_util_error_print(WIFI_MON, "%s:%d Harsha sta_data map not found for vap_index:%d\r\n", __func__, __LINE__, vap_index);
         return RETURN_ERR;
     }
@@ -335,10 +338,11 @@ int update_wpa3_sta_data(unsigned int vap_index) {
             
             wifi_util_dbg_print(WIFI_MON, "%s:%d connection time:%ld, current time:%ld\r\n", __func__, __LINE__, sta->connection_time, current_timestamp);
             wifi_util_dbg_print(WIFI_MON, "%s:%d vap_index:%d sta_mac:%s\r\n", __func__, __LINE__, vap_index, to_mac_str(sta->sta_mac, mac_str));
-            if ((current_timestamp - sta->connection_time) > MAX_ASSOC_FRAME_REFRESH_PERIOD) {
-	        wifi_util_dbg_print(WIFI_MON, "%s:%d harsha raw sta_mac: %02x:%02x:%02x:%02x:%02x:%02x\r\n",__func__, __LINE__, sta->sta_mac[0], sta->sta_mac[1], sta->sta_mac[2], sta->sta_mac[3], sta->sta_mac[4], sta->sta_mac[5]);
-                wifi_util_dbg_print(WIFI_MON, "%s:%d harsha time diff:%d\r\n", __func__, __LINE__, (current_timestamp - sta->connection_time));
-                memset(sta, 0, sizeof(telemetry_data_t));
+            if ((current_timestamp - sta->connection_time) > 5) {
+	        if (hash_map_get(sta_map1, mac_str) == NULL) {
+	            wifi_util_dbg_print(WIFI_MON, "%s:%d harsha raw sta_mac: %02x:%02x:%02x:%02x:%02x:%02x\r\n",__func__, __LINE__, sta->sta_mac[0], sta->sta_mac[1], sta->sta_mac[2], sta->sta_mac[3], sta->sta_mac[4], sta->sta_mac[5]);
+                    wifi_util_dbg_print(WIFI_MON, "%s:%d harsha time diff:%d\r\n", __func__, __LINE__, (current_timestamp - sta->connection_time));
+                    memset(sta, 0, sizeof(telemetry_data_t));
             }
         }
         sta = hash_map_get_next(sta_map, sta);
@@ -1017,7 +1021,7 @@ int update_assoc_frame_data_entry(unsigned int vap_index)
             wifi_util_dbg_print(WIFI_MON,"%s:%d assoc time:%ld, current time:%ld\r\n", __func__, __LINE__, sta->assoc_frame_data.frame_timestamp, current_timestamp);
             wifi_util_dbg_print(WIFI_MON,"%s:%d vap_index:%d sta_mac:%s\r\n", __func__, __LINE__, vap_index, to_mac_str(sta->sta_mac, mac_str));
             //If sta client disconnected and time diff more than 30 seconds then we need to reset client assoc frame data
-            if ((current_timestamp - sta->assoc_frame_data.frame_timestamp) > MAX_ASSOC_FRAME_REFRESH_PERIOD) {
+            if ((current_timestamp - sta->assoc_frame_data.frame_timestamp) > 3600) {
                 wifi_util_dbg_print(WIFI_MON,"%s:%d assoc time diff:%d\r\n", __func__, __LINE__, (current_timestamp - sta->assoc_frame_data.frame_timestamp));
                 memset(&sta->assoc_frame_data, 0, sizeof(assoc_req_elem_t));
             }
@@ -2986,7 +2990,7 @@ int init_wifi_monitor()
     wifi_hal_radiusFallback_failover_callback_register(radius_fallback_and_failover_callback);
     wifi_hal_stamode_callback_register(set_sta_client_mode);
     scheduler_add_timer_task(g_monitor_module.sched, FALSE, NULL, refresh_assoc_frame_entry, NULL, (MAX_ASSOC_FRAME_REFRESH_PERIOD * 1000), 0, FALSE);
-    scheduler_add_timer_task(g_monitor_module.sched, FALSE, NULL, refresh_wpa3_sta_entry, NULL, (MAX_ASSOC_FRAME_REFRESH_PERIOD * 1000), 0, FALSE); //checking
+    scheduler_add_timer_task(g_monitor_module.sched, FALSE, NULL, refresh_wpa3_sta_entry, NULL, (1 * 1000), 0, FALSE); //checking
     wifi_util_dbg_print(WIFI_MON, "%s:%d Wi-Fi monitor is initialized successfully\n", __func__, __LINE__);
 
     return 0;
