@@ -305,7 +305,6 @@ int set_wpa3_assoc_frame_data(frame_data_t *msg) {
             return RETURN_ERR;
         }
     }
-    memset(sta, 0, sizeof(telemetry_data_t));
     sta->expected_akm_count = 24;
     sta->less_than_expected_akm_count = 24;
     time(&frame_timestamp);
