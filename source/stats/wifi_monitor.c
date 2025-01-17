@@ -1022,7 +1022,7 @@ int update_assoc_frame_data_entry(unsigned int vap_index)
             wifi_util_dbg_print(WIFI_MON,"%s:%d assoc time:%ld, current time:%ld\r\n", __func__, __LINE__, sta->assoc_frame_data.frame_timestamp, current_timestamp);
             wifi_util_dbg_print(WIFI_MON,"%s:%d vap_index:%d sta_mac:%s\r\n", __func__, __LINE__, vap_index, to_mac_str(sta->sta_mac, mac_str));
             //If sta client disconnected and time diff more than 30 seconds then we need to reset client assoc frame data
-            if ((current_timestamp - sta->assoc_frame_data.frame_timestamp) > 3600) {
+            if ((current_timestamp - sta->assoc_frame_data.frame_timestamp) > 30) {
                 wifi_util_dbg_print(WIFI_MON,"%s:%d assoc time diff:%d\r\n", __func__, __LINE__, (current_timestamp - sta->assoc_frame_data.frame_timestamp));
                 memset(&sta->assoc_frame_data, 0, sizeof(assoc_req_elem_t));
             }
@@ -1050,25 +1050,100 @@ static int refresh_assoc_frame_entry(void *arg)
     return TIMER_TASK_COMPLETE;
 }
 
-int set_sta_client_mode(int ap_index, char *mac, int mode)
-{ 
-    hash_map_t   *sta_map;
-    sta_data_t   *sta;
+#define WPA2_PSK 2
+#define WPA3_SAE 8
+#define WPA3_SAE_EXT 24
+
+typedef enum {
+    BAND_2_4GHZ,
+    BAND_5GHZ,
+    BAND_6GHZ
+} wifi_band_t;
+
+typedef enum {
+    RSNE,
+    RSNO,
+    RSNO2,
+    UNKNOWN
+} rsn_variant_t;
+
+typedef enum {
+    ASSOC_REQUEST = 0,
+    REASSOC_REQUEST = 1,
+    EAPOL = 2
+} frame_type_t;
+
+rsn_variant_t get_rsn_variant(wifi_band_t band, int auth_type) {
+    if ((band == BAND_2_4GHZ || band == BAND_5GHZ) && auth_type == WPA2_PSK) {
+        return RSNE;
+    } else if ((band == BAND_2_4GHZ || band == BAND_5GHZ) && auth_type == WPA3_SAE) {
+        return RSNO;
+    } else if (band == BAND_6GHZ && auth_type == WPA3_SAE) {
+        return RSNE;
+    } else if ((band == BAND_6GHZ || band == BAND_5GHZ) && auth_type == WPA3_SAE_EXT) {
+        return RSNO2;
+    } else {
+        return UNKNOWN;
+    }
+}
+
+void telemetry_event_wpa3(int vapindex, char *mac, int rsnvariant, frame_type_t frame_type, int key_mgmt) {
+    char telemetry_buff[64] = {0};
+    char telemetry_val[128] = {0};
+    char telemetry_buff_grep[64] = {0};
+
+    if (!mac) {
+        wifi_util_info_print(WIFI_MON, "Error: MAC address is NULL\n");
+        return;
+    }
+
+    memset(telemetry_buff, 0, sizeof(telemetry_buff));
+    memset(telemetry_val, 0, sizeof(telemetry_val));
+    memset(telemetry_buff_grep, 0, sizeof(telemetry_buff_grep));
+
+    snprintf(telemetry_buff, sizeof(telemetry_buff), "WPA3_ENHANCED_COMPAT");
+    snprintf(telemetry_val, sizeof(telemetry_val),
+             "%d,%s,%d,%d,%d", vapindex, mac, rsnvariant, frame_type, key_mgmt);
+    strncpy(telemetry_buff_grep, telemetry_buff, sizeof(telemetry_buff_grep) - 1);
+    telemetry_buff_grep[sizeof(telemetry_buff_grep) - 1] = '\0';
+    wifi_util_dbg_print(WIFI_MON, "%s:%s\n", telemetry_buff_grep, telemetry_val);
+    get_stubs_descriptor()->t2_event_s_fn(telemetry_buff, telemetry_val);
+}
+
+int set_sta_client_mode(int ap_index, char *mac, int key_mgmt, frame_type_t frame_type, int band) {
+    hash_map_t *sta_map;
+    sta_data_t *sta;
+
     sta_map = get_sta_data_map(ap_index);
     if (sta_map == NULL) {
-        wifi_util_error_print(WIFI_MON,"%s:%d harsha sta_data map not found for vap_index:%d\r\n", __func__, __LINE__, ap_index);
+        wifi_util_error_print(WIFI_MON, "%s:%d sta_data map not found for vap_index:%d\r\n", __func__, __LINE__, ap_index);
         return RETURN_ERR;
     }
 
     sta = (sta_data_t *)hash_map_get(sta_map, mac);
-    if (NULL == sta)
-    {
-        wifi_util_error_print(WIFI_MON,"%s:%d harsha station is not found for vap_index:%d station :%s \r\n", __func__, __LINE__, ap_index,mac);
+    if (NULL == sta) {
+        wifi_util_error_print(WIFI_MON, "%s:%d station is not found for vap_index:%d station :%s \r\n", __func__, __LINE__, ap_index, mac);
         return RETURN_OK;
     }
-    sta->assoc_akm=mode;
-    sta->eapol_akm=0;
-    wifi_util_error_print(WIFI_MON,"%s:%d harsha station found for vap_index:%d station :%s and set the mode:%d mode:%d \r\n", __func__, __LINE__, ap_index,mac,mode,sta->assoc_akm);
+
+    if (frame_type == ASSOC_REQUEST || frame_type == REASSOC_REQUEST) {
+        sta->assoc_akm = key_mgmt;
+        rsn_variant_t variant = get_rsn_variant(band, key_mgmt);
+        telemetry_event_wpa3(ap_index, mac, variant, frame_type, key_mgmt);
+        sta->eapol_akm = 0;
+    } else if (frame_type == EAPOL) {
+        sta->eapol_akm = key_mgmt;
+        rsn_variant_t variant = get_rsn_variant(band, key_mgmt);
+        telemetry_event_wpa3(ap_index, mac, variant, frame_type, key_mgmt);
+        if (sta->assoc_akm == sta->eapol_akm) {
+            wifi_util_dbg_print(WIFI_MON, "%s:%d Harsha equal station found for vap_index:%d station :%s and set the mode:%d eapol_mode:%d assoc_mode:%d band:%d \r\n", __func__, __LINE__, ap_index, mac, key_mgmt, sta->eapol_akm, sta->assoc_akm, band);
+        }
+        else {
+            wifi_util_dbg_print(WIFI_MON, "%s:%d Harsha not equal station found for vap_index:%d station :%s and set the mode:%d eapol_mode:%d assoc_mode:%d band:%d \r\n", __func__, __LINE__, ap_index, mac, key_mgmt, sta->eapol_akm, sta->assoc_akm, band);
+        }
+    }
+
+    wifi_util_dbg_print(WIFI_MON, "%s:%d Harsha station found for vap_index:%d station :%s and set the mode:%d eapol_mode:%d assoc_mode:%d band:%d \r\n", __func__, __LINE__, ap_index, mac, key_mgmt, sta->eapol_akm, sta->assoc_akm, band);
     return RETURN_OK;
 }
 
