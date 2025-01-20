@@ -1120,21 +1120,21 @@ void telemetry_event_wpa3(int vapindex, char *mac, int rsnvariant, frame_type_t 
 void report_connection_event(telemetry_data_t *sta1, int expected_akm, int actual_akm) {
     if (expected_akm == WPA3_SAE_EXT) {
         if (actual_akm == WPA3_SAE_EXT) {
-            sta1->expected_akm_count++;
+            sta1->expected_akm_count = sta1->expected_akm_count + 1;
         } else if (actual_akm == WPA3_SAE) {
-            sta1->less_than_expected_akm_count++;
+            sta1->less_than_expected_akm_count = sta1->less_than_expected_akm_count + 1;
         } else if (actual_akm == WPA2_PSK) {
-            sta1->less_than_expected_akm_count++;
+            sta1->less_than_expected_akm_count = sta1->less_than_expected_akm_count + 1;
         }
     } else if (expected_akm == WPA3_SAE) {
         if (actual_akm == WPA3_SAE) {
-            sta1->expected_akm_count++;
+            sta1->expected_akm_count = sta1->expected_akm_count + 1;
         } else if (actual_akm == WPA2_PSK) {
-            sta1->less_than_expected_akm_count++;
+            sta1->less_than_expected_akm_count = sta1->less_than_expected_akm_count + 1;
         }
     } else if (expected_akm == WPA2_PSK) {
         if (actual_akm == WPA2_PSK) {
-            sta1->expected_akm_count++;
+            sta1->expected_akm_count = sta1->expected_akm_count + 1;
         }
     }
 }
