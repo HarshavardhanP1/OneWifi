@@ -1147,10 +1147,10 @@ int set_sta_client_mode(int ap_index, char *mac, int key_mgmt, frame_type_t fram
     int mode = 0;
     wifi_vap_security_t *security = (wifi_vap_security_t *)Get_wifi_object_bss_security_parameter(ap_index);
     if (security != NULL) {
-        if (security->mode == COSA_DML_WIFI_SECURITY_WPA3_Personal || security->mode == COSA_DML_WIFI_SECURITY_WPA3_Personal_Transition) {
+        if ((int)security->mode == (int)COSA_DML_WIFI_SECURITY_WPA3_Personal || (int)security->mode == (int)COSA_DML_WIFI_SECURITY_WPA3_Personal_Transition) {
             mode = 8;
         }
-        if (security->mode == COSA_DML_WIFI_SECURITY_WPA2_Personal) {
+        if ((int)security->mode == (int)COSA_DML_WIFI_SECURITY_WPA2_Personal) {
             mode = 2;
         }
     }
