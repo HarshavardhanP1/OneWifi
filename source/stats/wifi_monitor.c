@@ -1073,6 +1073,13 @@ typedef enum {
     EAPOL = 2
 } frame_type_t;
 
+typedef enum {
+    COSA_DML_WIFI_SECURITY_WPA2_Personal = 0x00000010,
+    COSA_DML_WIFI_SECURITY_WPA3_Personal = 0x00000200,
+    COSA_DML_WIFI_SECURITY_WPA3_Personal_Transition = 0x00000400
+} sec_t;
+
+
 rsn_variant_t get_rsn_variant(wifi_band_t band, int auth_type) {
     if ((band == BAND_2_4GHZ || band == BAND_5GHZ) && auth_type == WPA2_PSK) {
         return RSNE;
