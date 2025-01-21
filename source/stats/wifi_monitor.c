@@ -1186,7 +1186,7 @@ int set_sta_client_mode(int ap_index, char *mac, int key_mgmt, frame_type_t fram
             wifi_util_dbg_print(WIFI_MON, "%s:%d Harsha not equal station found for vap_index:%d station :%s and set the mode:%d eapol_mode:%d assoc_mode:%d band:%d \r\n", __func__, __LINE__, ap_index, mac, key_mgmt, sta->eapol_akm, sta->assoc_akm, band);
         }
     }
-    wifi_util_dbg_print(WIFI_MON, "%s:%d Harsha station found for vap_index:%d station :%s and set the key_mgmt:%d eapol_mode:%d assoc_mode:%d band:%d, expected count:%d, lessthanexpected:%d, mode:%d \r\n", __func__, __LINE__, ap_index, mac, key_mgmt, sta->eapol_akm, sta->assoc_akm, band, sta1->expected_akm_count, sta1->less_than_expected_akm_count, mode);
+    wifi_util_dbg_print(WIFI_MON, "%s:%d Harsha Hey station found for vap_index:%d station :%s and set the key_mgmt:%d eapol_mode:%d assoc_mode:%d band:%d, expected count:%d, lessthanexpected:%d, mode:%d \r\n", __func__, __LINE__, ap_index, mac, key_mgmt, sta->eapol_akm, sta->assoc_akm, band, sta1->expected_akm_count, sta1->less_than_expected_akm_count, mode);
     return RETURN_OK;
 }
 
