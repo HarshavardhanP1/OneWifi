@@ -305,8 +305,14 @@ int set_wpa3_assoc_frame_data(frame_data_t *msg) {
 		 
             return RETURN_ERR;
         }
-        sta->expected_akm_count = 0;
-        sta->less_than_expected_akm_count = 0;
+        sta->expected_akm_24_24_count = 0;
+        sta->expected_akm_8_8_count = 0;
+	sta->expected_akm_2_2_count = 0;
+	sta->less_than_expected_akm_24_8_count = 0;
+	sta->less_than_expected_akm_24_2_count= 0;
+	sta->less_than_expected_akm_8_2_count = 0;
+        sta->count = 0;
+
         time(&frame_timestamp);
         memcpy(&sta->connection_time, &frame_timestamp, sizeof(frame_timestamp));
     }
@@ -1094,6 +1100,29 @@ rsn_variant_t get_rsn_variant(wifi_band_t band, int auth_type) {
     }
 }
 
+void telemetry_event_akm_count(int vapindex, char *mac, int mode, int key_mgmt, int count) {
+    char telemetry_buff[64] = {0};
+    char telemetry_val[128] = {0};
+    char telemetry_buff_grep[64] = {0};
+
+    if (!mac) {
+        wifi_util_info_print(WIFI_MON, "Error: MAC address is NULL\n");
+        return;
+    }
+
+    memset(telemetry_buff, 0, sizeof(telemetry_buff));
+    memset(telemetry_val, 0, sizeof(telemetry_val));
+    memset(telemetry_buff_grep, 0, sizeof(telemetry_buff_grep));
+
+    snprintf(telemetry_buff, sizeof(telemetry_buff), "WPA3_COMPAT_AKM_COUNT");
+    snprintf(telemetry_val, sizeof(telemetry_val),
+             "%d,%s,(%d,%d)-%d", vapindex, mac, mode, key_mgmt, count);
+    strncpy(telemetry_buff_grep, telemetry_buff, sizeof(telemetry_buff_grep) - 1);
+    telemetry_buff_grep[sizeof(telemetry_buff_grep) - 1] = '\0';
+    wifi_util_dbg_print(WIFI_MON, "%s:%s\n", telemetry_buff_grep, telemetry_val);
+    get_stubs_descriptor()->t2_event_s_fn(telemetry_buff, telemetry_val);
+}
+
 void telemetry_event_wpa3(int vapindex, char *mac, int rsnvariant, frame_type_t frame_type, int key_mgmt) {
     char telemetry_buff[64] = {0};
     char telemetry_val[128] = {0};
@@ -1118,23 +1147,30 @@ void telemetry_event_wpa3(int vapindex, char *mac, int rsnvariant, frame_type_t 
 }
 
 void report_connection_event(telemetry_data_t *sta1, int expected_akm, int actual_akm) {
+    sta1->count = 0;
     if (expected_akm == WPA3_SAE_EXT) {
         if (actual_akm == WPA3_SAE_EXT) {
-            sta1->expected_akm_count = sta1->expected_akm_count + 1;
+            sta1->expected_akm_24_24_count = sta1->expected_akm_24_24_count + 1;
+            sta1->count = sta1->expected_akm_24_24_count;
         } else if (actual_akm == WPA3_SAE) {
-            sta1->less_than_expected_akm_count = sta1->less_than_expected_akm_count + 1;
+            sta1->less_than_expected_akm_24_8_count = sta1->less_than_expected_akm_24_8_count + 1;
+	    sta1->count = sta1->less_than_expected_akm_24_8_count;
         } else if (actual_akm == WPA2_PSK) {
-            sta1->less_than_expected_akm_count = sta1->less_than_expected_akm_count + 1;
+            sta1->less_than_expected_akm_24_2_count = sta1->less_than_expected_akm_24_2_count + 1;
+	    sta1->count = sta1->less_than_expected_akm_24_2_count;
         }
     } else if (expected_akm == WPA3_SAE) {
         if (actual_akm == WPA3_SAE) {
-            sta1->expected_akm_count = sta1->expected_akm_count + 1;
+            sta1->expected_akm_8_8_count = sta1->expected_akm_8_8_count + 1;
+	    sta1->count = sta1->expected_akm_8_8_count;
         } else if (actual_akm == WPA2_PSK) {
-            sta1->less_than_expected_akm_count = sta1->less_than_expected_akm_count + 1;
+            sta1->less_than_expected_akm_8_2_count = sta1->less_than_expected_akm_8_2_count + 1;
+	    sta1->count = sta1->less_than_expected_akm_8_2_count;
         }
     } else if (expected_akm == WPA2_PSK) {
         if (actual_akm == WPA2_PSK) {
-            sta1->expected_akm_count = sta1->expected_akm_count + 1;
+            sta1->expected_akm_2_2_count = sta1->expected_akm_2_2_count + 1;
+	    sta1->count = sta1->expected_akm_2_2_count;
         }
     }
 }
@@ -1180,7 +1216,7 @@ int set_sta_client_mode(int ap_index, char *mac, int key_mgmt, frame_type_t fram
         if (sta->assoc_akm == sta->eapol_akm) {
             wifi_util_dbg_print(WIFI_MON, "%s:%d Harsha equal station found for vap_index:%d station :%s and set the mode:%d eapol_mode:%d assoc_mode:%d band:%d \r\n", __func__, __LINE__, ap_index, mac, key_mgmt, sta->eapol_akm, sta->assoc_akm, band);
 	    report_connection_event(sta1, mode, sta->eapol_akm);
-            telemetry_event_wpa3(ap_index, mac, sta1->expected_akm_count, frame_type, sta1->less_than_expected_akm_count);
+            telemetry_event_akm_count(ap_index, mac, mode, key_mgmt, sta1->count);
         }
         else {
             wifi_util_dbg_print(WIFI_MON, "%s:%d Harsha not equal station found for vap_index:%d station :%s and set the mode:%d eapol_mode:%d assoc_mode:%d band:%d \r\n", __func__, __LINE__, ap_index, mac, key_mgmt, sta->eapol_akm, sta->assoc_akm, band);
