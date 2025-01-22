@@ -817,8 +817,13 @@ typedef struct {
 
 typedef struct {
     mac_address_t sta_mac;
-    int expected_akm_count;
-    int less_than_expected_akm_count;
+    int expected_akm_24_24_count;
+    int expected_akm_8_8_count;
+    int expected_akm_2_2_count;
+    int less_than_expected_akm_24_8_count;
+    int less_than_expected_akm_24_2_count;
+    int less_than_expected_akm_8_2_count;
+    int count;
     time_t connection_time;
 } telemetry_data_t;
 
