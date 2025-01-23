@@ -44,6 +44,38 @@ typedef struct {
     ssid_t                  ssid;
 } bssid_data_t;
 
+#define WPA2_PSK 2
+#define WPA3_SAE 8
+#define WPA3_SAE_EXT 24
+
+typedef enum {
+    BAND_2_4GHZ,
+    BAND_5GHZ,
+    BAND_6GHZ
+} wifi_band_t;
+
+typedef enum {
+    RSNE,
+    RSNO,
+    RSNO2,
+    UNKNOWN
+} rsn_variant_t;
+
+typedef enum {
+    ASSOC_REQUEST = 0,
+    REASSOC_REQUEST = 1,
+    EAPOL = 2
+} frame_type_t;
+
+typedef enum {
+    COSA_DML_WIFI_SECURITY_WPA2_Personal = 0x00000010,
+    COSA_DML_WIFI_SECURITY_WPA3_Personal = 0x00000200,
+    COSA_DML_WIFI_SECURITY_WPA3_Personal_Transition = 0x00000400
+} sec_t;
+
+
+
+
 /*
 typedef struct {
     char                    frequency_band[64];
