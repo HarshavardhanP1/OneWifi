@@ -823,7 +823,6 @@ typedef struct {
     int less_than_expected_akm_24_8_count;
     int less_than_expected_akm_24_2_count;
     int less_than_expected_akm_8_2_count;
-    int count;
     time_t connection_time;
 } telemetry_data_t;
 
