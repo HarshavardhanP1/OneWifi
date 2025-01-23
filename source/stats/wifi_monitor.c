@@ -165,6 +165,8 @@ extern void* bus_handle;
 #define MIN_TO_MILLISEC 60000
 #define SEC_TO_MILLISEC 1000
 
+#define MAX_AKM_REPORT_REFRESH_PERIOD 3600
+
 #define ASSOC_REQ_MAC_HEADER_LEN 24 + 2 + 2 // 4 bytes after mac header reserved for fixed len fields
 
 char *instSchemaIdBuffer = "8b27dafc-0c4d-40a1-b62c-f24a34074914/4388e585dd7c0d32ac47e71f634b579b";
@@ -344,7 +346,7 @@ int update_wpa3_sta_data(unsigned int vap_index) {
             
             wifi_util_dbg_print(WIFI_MON, "%s:%d connection time:%ld, current time:%ld\r\n", __func__, __LINE__, sta->connection_time, current_timestamp);
             wifi_util_dbg_print(WIFI_MON, "%s:%d vap_index:%d sta_mac:%s\r\n", __func__, __LINE__, vap_index, to_mac_str(sta->sta_mac, mac_str));
-            if ((current_timestamp - sta->connection_time) > 5) {
+            if ((current_timestamp - sta->connection_time) > MAX_AKM_REPORT_REFRESH_PERIOD) {
 	        if (hash_map_get(sta_map1, mac_str) == NULL) {
 	            wifi_util_dbg_print(WIFI_MON, "%s:%d harsha raw sta_mac: %02x:%02x:%02x:%02x:%02x:%02x\r\n",__func__, __LINE__, sta->sta_mac[0], sta->sta_mac[1], sta->sta_mac[2], sta->sta_mac[3], sta->sta_mac[4], sta->sta_mac[5]);
                     wifi_util_dbg_print(WIFI_MON, "%s:%d harsha time diff:%d\r\n", __func__, __LINE__, (current_timestamp - sta->connection_time));
@@ -1028,7 +1030,7 @@ int update_assoc_frame_data_entry(unsigned int vap_index)
             wifi_util_dbg_print(WIFI_MON,"%s:%d assoc time:%ld, current time:%ld\r\n", __func__, __LINE__, sta->assoc_frame_data.frame_timestamp, current_timestamp);
             wifi_util_dbg_print(WIFI_MON,"%s:%d vap_index:%d sta_mac:%s\r\n", __func__, __LINE__, vap_index, to_mac_str(sta->sta_mac, mac_str));
             //If sta client disconnected and time diff more than 30 seconds then we need to reset client assoc frame data
-            if ((current_timestamp - sta->assoc_frame_data.frame_timestamp) > 30) {
+            if ((current_timestamp - sta->assoc_frame_data.frame_timestamp) > MAX_ASSOC_FRAME_REFRESH_PERIOD) {
                 wifi_util_dbg_print(WIFI_MON,"%s:%d assoc time diff:%d\r\n", __func__, __LINE__, (current_timestamp - sta->assoc_frame_data.frame_timestamp));
                 memset(&sta->assoc_frame_data, 0, sizeof(assoc_req_elem_t));
             }
@@ -1056,36 +1058,6 @@ static int refresh_assoc_frame_entry(void *arg)
     return TIMER_TASK_COMPLETE;
 }
 
-#define WPA2_PSK 2
-#define WPA3_SAE 8
-#define WPA3_SAE_EXT 24
-
-typedef enum {
-    BAND_2_4GHZ,
-    BAND_5GHZ,
-    BAND_6GHZ
-} wifi_band_t;
-
-typedef enum {
-    RSNE,
-    RSNO,
-    RSNO2,
-    UNKNOWN
-} rsn_variant_t;
-
-typedef enum {
-    ASSOC_REQUEST = 0,
-    REASSOC_REQUEST = 1,
-    EAPOL = 2
-} frame_type_t;
-
-typedef enum {
-    COSA_DML_WIFI_SECURITY_WPA2_Personal = 0x00000010,
-    COSA_DML_WIFI_SECURITY_WPA3_Personal = 0x00000200,
-    COSA_DML_WIFI_SECURITY_WPA3_Personal_Transition = 0x00000400
-} sec_t;
-
-
 rsn_variant_t get_rsn_variant(wifi_band_t band, int auth_type) {
     if ((band == BAND_2_4GHZ || band == BAND_5GHZ) && auth_type == WPA2_PSK) {
         return RSNE;
@@ -1093,14 +1065,14 @@ rsn_variant_t get_rsn_variant(wifi_band_t band, int auth_type) {
         return RSNO;
     } else if (band == BAND_6GHZ && auth_type == WPA3_SAE) {
         return RSNE;
-    } else if ((band == BAND_6GHZ || band == BAND_5GHZ) && auth_type == WPA3_SAE_EXT) {
+    } else if ((band == BAND_6GHZ || band == BAND_5GHZ || band == BAND_2_4GHZ) && auth_type == WPA3_SAE_EXT) {
         return RSNO2;
     } else {
         return UNKNOWN;
     }
 }
 
-void telemetry_event_akm_count(int vapindex, char *mac, int mode, int key_mgmt, int count) {
+void telemetry_event_akm_count(telemetry_data_t *sta1,int vapindex, char *mac, int mode, int key_mgmt) {
     char telemetry_buff[64] = {0};
     char telemetry_val[128] = {0};
     char telemetry_buff_grep[64] = {0};
@@ -1116,7 +1088,7 @@ void telemetry_event_akm_count(int vapindex, char *mac, int mode, int key_mgmt, 
 
     snprintf(telemetry_buff, sizeof(telemetry_buff), "WPA3_COMPAT_AKM_COUNT");
     snprintf(telemetry_val, sizeof(telemetry_val),
-             "%d,%s,(%d,%d)-%d", vapindex, mac, mode, key_mgmt, count);
+             “%d,%s,(24,24)-%d,(24,8)-%d,(24,2)-%d,(8,8)-%d,(8,2)-%d,(2,2)-%d”, vapindex, mac, mode, key_mgmt, sta1->expected_akm_24_24_count, sta1->less_than_expected_akm_24_8_count, sta1->less_than_expected_akm_24_2_count, sta1->expected_akm_8_8_count,sta1->less_than_expected_akm_8_2_count, sta1->expected_akm_2_2_count);
     strncpy(telemetry_buff_grep, telemetry_buff, sizeof(telemetry_buff_grep) - 1);
     telemetry_buff_grep[sizeof(telemetry_buff_grep) - 1] = '\0';
     wifi_util_dbg_print(WIFI_MON, "%s:%s\n", telemetry_buff_grep, telemetry_val);
@@ -1216,13 +1188,13 @@ int set_sta_client_mode(int ap_index, char *mac, int key_mgmt, frame_type_t fram
         if (sta->assoc_akm == sta->eapol_akm) {
             wifi_util_dbg_print(WIFI_MON, "%s:%d Harsha equal station found for vap_index:%d station :%s and set the mode:%d eapol_mode:%d assoc_mode:%d band:%d \r\n", __func__, __LINE__, ap_index, mac, key_mgmt, sta->eapol_akm, sta->assoc_akm, band);
 	    report_connection_event(sta1, mode, sta->eapol_akm);
-            telemetry_event_akm_count(ap_index, mac, mode, key_mgmt, sta1->count);
+            telemetry_event_akm_count(sta1, ap_index, mac, mode, key_mgmt);
         }
         else {
             wifi_util_dbg_print(WIFI_MON, "%s:%d Harsha not equal station found for vap_index:%d station :%s and set the mode:%d eapol_mode:%d assoc_mode:%d band:%d \r\n", __func__, __LINE__, ap_index, mac, key_mgmt, sta->eapol_akm, sta->assoc_akm, band);
         }
     }
-    wifi_util_dbg_print(WIFI_MON, "%s:%d Harsha Hey station found for vap_index:%d station :%s and set the key_mgmt:%d eapol_mode:%d assoc_mode:%d band:%d, count:%d, mode:%d \r\n", __func__, __LINE__, ap_index, mac, key_mgmt, sta->eapol_akm, sta->assoc_akm, band, sta1->count, mode);
+    wifi_util_dbg_print(WIFI_MON, "%s:%d Harsha Hey station found for vap_index:%d station :%s and set the key_mgmt:%d eapol_mode:%d assoc_mode:%d band:%d,mode:%d \r\n", __func__, __LINE__, ap_index, mac, key_mgmt, sta->eapol_akm, sta->assoc_akm, band, mode);
     return RETURN_OK;
 }
 
@@ -3149,7 +3121,7 @@ int init_wifi_monitor()
     wifi_hal_radiusFallback_failover_callback_register(radius_fallback_and_failover_callback);
     wifi_hal_stamode_callback_register(set_sta_client_mode);
     scheduler_add_timer_task(g_monitor_module.sched, FALSE, NULL, refresh_assoc_frame_entry, NULL, (MAX_ASSOC_FRAME_REFRESH_PERIOD * 1000), 0, FALSE);
-    scheduler_add_timer_task(g_monitor_module.sched, FALSE, NULL, refresh_wpa3_sta_entry, NULL, (1 * 1000), 0, FALSE); //checking
+    scheduler_add_timer_task(g_monitor_module.sched, FALSE, NULL, refresh_wpa3_sta_entry, NULL, (MAX_AKM_REPORT_REFRESH_PERIOD * 1000), 0, FALSE); //checking
     wifi_util_dbg_print(WIFI_MON, "%s:%d Wi-Fi monitor is initialized successfully\n", __func__, __LINE__);
 
     return 0;
