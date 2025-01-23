@@ -68,9 +68,9 @@ typedef enum {
 } frame_type_t;
 
 typedef enum {
-    COSA_DML_WIFI_SECURITY_WPA2_Personal = 0x00000010,
-    COSA_DML_WIFI_SECURITY_WPA3_Personal = 0x00000200,
-    COSA_DML_WIFI_SECURITY_WPA3_Personal_Transition = 0x00000400
+    SECURITY_WPA2_Personal = 0x00000010,
+    SECURITY_WPA3_Personal = 0x00000200,
+    SECURITY_WPA3_Personal_Transition = 0x00000400
 } sec_t;
 
 
