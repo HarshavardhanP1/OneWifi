@@ -313,7 +313,6 @@ int set_wpa3_assoc_frame_data(frame_data_t *msg) {
 	sta->less_than_expected_akm_24_8_count = 0;
 	sta->less_than_expected_akm_24_2_count= 0;
 	sta->less_than_expected_akm_8_2_count = 0;
-        sta->count = 0;
 
         time(&frame_timestamp);
         memcpy(&sta->connection_time, &frame_timestamp, sizeof(frame_timestamp));
@@ -1088,7 +1087,7 @@ void telemetry_event_akm_count(telemetry_data_t *sta1,int vapindex, char *mac) {
 
     snprintf(telemetry_buff, sizeof(telemetry_buff), "WPA3_COMPAT_AKM_COUNT");
     snprintf(telemetry_val, sizeof(telemetry_val),
-             “%d,%s,(24,24)-%d,(24,8)-%d,(24,2)-%d,(8,8)-%d,(8,2)-%d,(2,2)-%d”, vapindex, mac, sta1->expected_akm_24_24_count, sta1->less_than_expected_akm_24_8_count, sta1->less_than_expected_akm_24_2_count, sta1->expected_akm_8_8_count,sta1->less_than_expected_akm_8_2_count, sta1->expected_akm_2_2_count);
+             "%d,%s,(24,24)-%d,(24,8)-%d,(24,2)-%d,(8,8)-%d,(8,2)-%d,(2,2)-%d", vapindex, mac, sta1->expected_akm_24_24_count, sta1->less_than_expected_akm_24_8_count, sta1->less_than_expected_akm_24_2_count, sta1->expected_akm_8_8_count,sta1->less_than_expected_akm_8_2_count, sta1->expected_akm_2_2_count);
     strncpy(telemetry_buff_grep, telemetry_buff, sizeof(telemetry_buff_grep) - 1);
     telemetry_buff_grep[sizeof(telemetry_buff_grep) - 1] = '\0';
     wifi_util_dbg_print(WIFI_MON, "%s:%s\n", telemetry_buff_grep, telemetry_val);
