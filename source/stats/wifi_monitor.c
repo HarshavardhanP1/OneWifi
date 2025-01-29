@@ -332,7 +332,7 @@ int update_wpa3_sta_data(unsigned int vap_index) {
 
     sta_map = get_wpa3_sta_data_map(vap_index);
     sta_map1 = get_sta_data_map(vap_index);
-    wifi_util_info_print(WIFI_MON, "%s:%d Harsha started\r\n", __func__, __LINE__);
+    //wifi_util_info_print(WIFI_MON, "%s:%d Harsha started\r\n", __func__, __LINE__);
     if (sta_map == NULL || sta_map1 == NULL) {
         wifi_util_error_print(WIFI_MON, "%s:%d Harsha sta_data map not found for vap_index:%d\r\n", __func__, __LINE__, vap_index);
         return RETURN_ERR;
@@ -343,38 +343,38 @@ int update_wpa3_sta_data(unsigned int vap_index) {
         if (sta->connection_time != 0) {
             time(&current_timestamp);
             
-            wifi_util_dbg_print(WIFI_MON, "%s:%d connection time:%ld, current time:%ld\r\n", __func__, __LINE__, sta->connection_time, current_timestamp);
-            wifi_util_dbg_print(WIFI_MON, "%s:%d vap_index:%d sta_mac:%s\r\n", __func__, __LINE__, vap_index, to_mac_str(sta->sta_mac, mac_str));
+            //wifi_util_dbg_print(WIFI_MON, "%s:%d connection time:%ld, current time:%ld\r\n", __func__, __LINE__, sta->connection_time, current_timestamp);
+            //wifi_util_dbg_print(WIFI_MON, "%s:%d vap_index:%d sta_mac:%s\r\n", __func__, __LINE__, vap_index, to_mac_str(sta->sta_mac, mac_str));
             if ((current_timestamp - sta->connection_time) > MAX_AKM_REPORT_REFRESH_PERIOD) {
 	        if (hash_map_get(sta_map1, mac_str) == NULL) {
 	            wifi_util_dbg_print(WIFI_MON, "%s:%d harsha raw sta_mac: %02x:%02x:%02x:%02x:%02x:%02x\r\n",__func__, __LINE__, sta->sta_mac[0], sta->sta_mac[1], sta->sta_mac[2], sta->sta_mac[3], sta->sta_mac[4], sta->sta_mac[5]);
-                    wifi_util_dbg_print(WIFI_MON, "%s:%d harsha time diff:%d\r\n", __func__, __LINE__, (current_timestamp - sta->connection_time));
+                    wifi_util_dbg_print(WIFI_MON, "%s:%d harsha time diff:%d connection time:%ld, current time:%ld \r\n", __func__, __LINE__, (current_timestamp - sta->connection_time), sta->connection_time, current_timestamp);
                     memset(sta, 0, sizeof(telemetry_data_t));
 		}
             }
         }
         sta = hash_map_get_next(sta_map, sta);
     }
-    wifi_util_info_print(WIFI_MON, "%s:%d Harsha done\r\n", __func__, __LINE__);
+    //wifi_util_info_print(WIFI_MON, "%s:%d Harsha done\r\n", __func__, __LINE__);
     return RETURN_OK;
 }
 
 void update_wpa3_sta_all_vap_data_entry(void) {
  
     unsigned int index, vap_index;
-    wifi_util_info_print(WIFI_MON, "%s:%d Harsha started\r\n", __func__, __LINE__);
+    //wifi_util_info_print(WIFI_MON, "%s:%d Harsha started\r\n", __func__, __LINE__);
     wifi_mgr_t *mgr = get_wifimgr_obj();
     for (index = 0; index < getTotalNumberVAPs(); index++) {
         vap_index = VAP_INDEX(mgr->hal_cap, index);
         update_wpa3_sta_data(vap_index);
     }
-    wifi_util_info_print(WIFI_MON, "%s:%d Harsha done\r\n", __func__, __LINE__);
+    //wifi_util_info_print(WIFI_MON, "%s:%d Harsha done\r\n", __func__, __LINE__);
 }
 
 static int refresh_wpa3_sta_entry(void *arg) {
  
     update_wpa3_sta_all_vap_data_entry();
-    wifi_util_info_print(WIFI_MON, "%s:%d Harsha started and done\r\n", __func__, __LINE__);
+    //wifi_util_info_print(WIFI_MON, "%s:%d Harsha started and done\r\n", __func__, __LINE__);
     return TIMER_TASK_COMPLETE;
 }
 
@@ -3113,7 +3113,7 @@ int init_wifi_monitor()
     wifi_hal_radiusFallback_failover_callback_register(radius_fallback_and_failover_callback);
     wifi_hal_stamode_callback_register(set_sta_client_mode);
     scheduler_add_timer_task(g_monitor_module.sched, FALSE, NULL, refresh_assoc_frame_entry, NULL, (MAX_ASSOC_FRAME_REFRESH_PERIOD * 1000), 0, FALSE);
-    scheduler_add_timer_task(g_monitor_module.sched, FALSE, NULL, refresh_wpa3_sta_entry, NULL, (MAX_AKM_REPORT_REFRESH_PERIOD * 1000), 0, FALSE); //checking
+    scheduler_add_timer_task(g_monitor_module.sched, FALSE, NULL, refresh_wpa3_sta_entry, NULL, (1 * 1000), 0, FALSE); //checking
     wifi_util_dbg_print(WIFI_MON, "%s:%d Wi-Fi monitor is initialized successfully\n", __func__, __LINE__);
 
     return 0;
