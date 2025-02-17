@@ -2691,8 +2691,7 @@ static webconfig_error_t translate_vap_info_to_vif_state_sec_legacy(wifi_vap_inf
             return webconfig_error_translate_to_ovsdb;
         }
     }
-    //wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d Harsha to convert key mgmt: security mode 0x%x encr 0x%x\n", __func__, __LINE__, vap->u.bss_info.security.mode,
-                vap->u.bss_info.security.encr);
+    //wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d Harsha to convert key mgmt: security mode 0x%x encr 0x%x\n", __func__, __LINE__, vap->u.bss_info.security.mode, vap->u.bss_info.security.encr);
      wifi_util_info_print(WIFI_WEBCONFIG, "%s:%d: Harsha mode:%s encryp:%s \n", __func__, __LINE__,str_mode, str_encryp);
     set_translator_state_security_key_value(vap_row, &index, "encryption", str_encryp);
     set_translator_state_security_key_value(vap_row, &index, "mode", str_mode);
@@ -2708,8 +2707,7 @@ static webconfig_error_t translate_vap_info_to_vif_state_sec_legacy(wifi_vap_inf
         set_translator_state_security_key_value(vap_row, &index, "oftag",
             vap->u.bss_info.security.key_id);
     }
-    //wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d Harsha done to convert key mgmt: security mode 0x%x encr 0x%x\n", __func__, __LINE__, vap->u.bss_info.security.mode,
-                vap->u.bss_info.security.encr);
+    //wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d Harsha done to convert key mgmt: security mode 0x%x encr 0x%x\n", __func__, __LINE__, vap->u.bss_info.security.mode,vap->u.bss_info.security.encr);
     return webconfig_error_none;
 }
 
