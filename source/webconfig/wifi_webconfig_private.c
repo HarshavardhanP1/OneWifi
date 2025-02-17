@@ -51,18 +51,24 @@ webconfig_error_t translate_from_private_subdoc(webconfig_t *config, webconfig_s
 {
     if (((data->descriptor & webconfig_data_descriptor_translate_to_ovsdb) == webconfig_data_descriptor_translate_to_ovsdb) 
         ||  ((data->descriptor & webconfig_data_descriptor_translate_to_easymesh) == webconfig_data_descriptor_translate_to_easymesh)) {
-        if (config->proto_desc.translate_to(webconfig_subdoc_type_private, data) != webconfig_error_none) {
+        wifi_util_info_print(WIFI_DMCLI, "%s:%d: Harsha translate to ovsdb and easy mesh \n", __func__, __LINE__);
+	 if (config->proto_desc.translate_to(webconfig_subdoc_type_private, data) != webconfig_error_none) {
+		 wifi_util_info_print(WIFI_DMCLI, "%s:%d: Harsha translate to is done\n", __func__, __LINE__);
             if ((data->descriptor & webconfig_data_descriptor_translate_to_ovsdb) == webconfig_data_descriptor_translate_to_ovsdb) {
-                return webconfig_error_translate_to_ovsdb;
+                wifi_util_info_print(WIFI_DMCLI, "%s:%d: Harsha return translate to ovsdb \n", __func__, __LINE__);
+		return webconfig_error_translate_to_ovsdb;
             } else {
+		wifi_util_info_print(WIFI_DMCLI, "%s:%d: Harsha return translate to easy mesh\n", __func__, __LINE__);
                 return webconfig_error_translate_to_easymesh;
             }
         }
     } else if ((data->descriptor & webconfig_data_descriptor_translate_to_tr181) == webconfig_data_descriptor_translate_to_tr181) {
-
+              wifi_util_info_print(WIFI_DMCLI, "%s:%d: Harsha tr181 \n", __func__, __LINE__);
     } else {
         // no translation required
+	wifi_util_info_print(WIFI_DMCLI, "%s:%d: Harsha no translation \n", __func__, __LINE__);
     }
+    wifi_util_info_print(WIFI_DMCLI, "%s:%d: Harsha done \n", __func__, __LINE__);
     return webconfig_error_none;
 }
 
@@ -70,18 +76,25 @@ webconfig_error_t translate_to_private_subdoc(webconfig_t *config, webconfig_sub
 {
     if (((data->descriptor & webconfig_data_descriptor_translate_from_ovsdb) == webconfig_data_descriptor_translate_from_ovsdb)
         ||  ((data->descriptor & webconfig_data_descriptor_translate_from_easymesh) == webconfig_data_descriptor_translate_from_easymesh)) {
+	wifi_util_info_print(WIFI_DMCLI, "%s:%d: Harsha translate from ovsdb and easymesh \n", __func__, __LINE__);
         if (config->proto_desc.translate_from(webconfig_subdoc_type_private, data) != webconfig_error_none) {
+	    wifi_util_info_print(WIFI_DMCLI, "%s:%d: Harsha translate_from is done\n", __func__, __LINE__);
             if ((data->descriptor & webconfig_data_descriptor_translate_from_ovsdb) == webconfig_data_descriptor_translate_from_ovsdb) {
-                return webconfig_error_translate_from_ovsdb;
+                wifi_util_info_print(WIFI_DMCLI, "%s:%d: Harsha return translate from ovsb \n", __func__, __LINE__);
+                 return webconfig_error_translate_from_ovsdb;
+
             } else {
+		wifi_util_info_print(WIFI_DMCLI, "%s:%d: Harsha return translate from easy mesh \n", __func__, __LINE__);
                 return webconfig_error_translate_from_easymesh;
             }
         }
     } else if ((data->descriptor & webconfig_data_descriptor_translate_from_tr181) == webconfig_data_descriptor_translate_from_tr181) {
-
+                wifi_util_info_print(WIFI_DMCLI, "%s:%d: Harsha tr181 \n", __func__, __LINE__);
     } else {
         // no translation required
+	wifi_util_info_print(WIFI_DMCLI, "%s:%d: Harsha no translation \n", __func__, __LINE__);
     }
+    wifi_util_info_print(WIFI_DMCLI, "%s:%d: Harsha done \n", __func__, __LINE__);
     return webconfig_error_none;
 }
 
@@ -141,10 +154,10 @@ webconfig_error_t encode_private_subdoc(webconfig_t *config, webconfig_subdoc_da
 
     json_param_obscure(str, "Passphrase");
     json_param_obscure(str, "WpsConfigPin");
-    wifi_util_dbg_print(WIFI_WEBCONFIG, "%s:%d: Encoded JSON:\n%s\n", __func__, __LINE__, str);
+    wifi_util_dbg_print(WIFI_WEBCONFIG, "%s:%d:Harsha  Encoded JSON:\n%s\n", __func__, __LINE__, str);
     cJSON_free(str);
     cJSON_Delete(json);
-    wifi_util_info_print(WIFI_WEBCONFIG, "%s:%d: encode success\n", __func__, __LINE__);
+    wifi_util_info_print(WIFI_WEBCONFIG, "%s:%d: Harsha encode success\n", __func__, __LINE__);
     return webconfig_error_none;
 }
 
@@ -174,7 +187,7 @@ webconfig_error_t decode_private_subdoc(webconfig_t *config, webconfig_subdoc_da
     str =  cJSON_Print(json);
     json_param_obscure(str, "Passphrase");
     json_param_obscure(str, "WpsConfigPin");
-    wifi_util_dbg_print(WIFI_WEBCONFIG, "%s:%d: decoded JSON:\n%s\n", __func__, __LINE__, str);
+    wifi_util_dbg_print(WIFI_WEBCONFIG, "%s:%d: Harsha decoded JSON:\n%s\n", __func__, __LINE__, str);
     cJSON_free(str);
     for (i = 0; i < doc->num_objects; i++) {
         if ((cJSON_GetObjectItem(json, doc->objects[i].name)) == NULL) {
@@ -260,7 +273,7 @@ webconfig_error_t decode_private_subdoc(webconfig_t *config, webconfig_subdoc_da
         }
     }
 
-    wifi_util_info_print(WIFI_WEBCONFIG, "%s:%d: decode success\n", __func__, __LINE__);
+    wifi_util_info_print(WIFI_WEBCONFIG, "%s:%d:Harsha  decode success\n", __func__, __LINE__);
 
     cJSON_Delete(json);
     return webconfig_error_none;

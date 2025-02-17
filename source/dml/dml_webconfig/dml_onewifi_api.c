@@ -1188,17 +1188,17 @@ int push_subdoc_to_one_wifidb(uint8_t subdoc)
     memcpy((unsigned char *)&data.u.decoded.radios, (unsigned char *)&webconfig_dml.radios, get_num_radio_dml()*sizeof(rdk_wifi_radio_t));
     memcpy((unsigned char *)&data.u.decoded.hal_cap, (unsigned char *)&webconfig_dml.hal_cap, sizeof(wifi_hal_capability_t));
     data.u.decoded.num_radios = get_num_radio_dml();
-
+     wifi_util_info_print(WIFI_DMCLI, "%s:%d: Harsha started \n", __func__, __LINE__);
     if (webconfig_encode(&webconfig_dml.webconfig, &data, subdoc) == webconfig_error_none) {
         str = data.u.encoded.raw;
-        wifi_util_info_print(WIFI_DMCLI, "%s:  VAP DML cache encoded successfully  \n", __FUNCTION__);
+        wifi_util_info_print(WIFI_DMCLI, "%s:Harsha  VAP DML cache encoded successfully  \n", __FUNCTION__);
         push_event_to_ctrl_queue(str, strlen(str), wifi_event_type_webconfig, wifi_event_webconfig_set_data_dml, NULL);
     } else {
-        wifi_util_error_print(WIFI_DMCLI, "%s:%d: Webconfig set failed, update data from ctrl queue\n", __func__, __LINE__);
+        wifi_util_error_print(WIFI_DMCLI, "%s:%d: Harsha Webconfig set failed, update data from ctrl queue\n", __func__, __LINE__);
         request_for_dml_data_resync();
     }
 
-    wifi_util_info_print(WIFI_DMCLI, "%s:  VAP DML cache pushed to queue \n", __FUNCTION__);
+    wifi_util_info_print(WIFI_DMCLI, "%s: Harsha  done VAP DML cache pushed to queue \n", __FUNCTION__);
 
     webconfig_data_free(&data);
 

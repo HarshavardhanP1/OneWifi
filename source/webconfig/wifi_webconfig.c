@@ -57,9 +57,11 @@ static webconfig_error_map_t    g_webconfig_erors[] =
 
 webconfig_error_t webconfig_encode(webconfig_t *config, webconfig_subdoc_data_t *data, webconfig_subdoc_type_t type)
 {
+    wifi_util_dbg_print(WIFI_WEBCONFIG, "%s:%d Harsha before data descriptor = %u\n", __func__, __LINE__, data->descriptor);
     data->signature = WEBCONFIG_MAGIC_SIGNATUTRE;
     data->type = type;
     data->descriptor |= webconfig_data_descriptor_decoded;
+    wifi_util_dbg_print(WIFI_WEBCONFIG, "%s:%d Harsha after data descriptor = %u\n", __func__, __LINE__, data->descriptor);
 
     return webconfig_set(config, data);
 }
@@ -73,13 +75,13 @@ webconfig_error_t webconfig_decode(webconfig_t *config, webconfig_subdoc_data_t 
         wifi_util_error_print(WIFI_WEBCONFIG,"%s:%d Failed to allocate memory.\n", __func__,__LINE__);
         return webconfig_error_decode;
     }
-
+    wifi_util_dbg_print(WIFI_WEBCONFIG, "%s:%dHarsha before data descriptor = %u\n", __func__, __LINE__, data->descriptor);
     strcpy(data->u.encoded.raw, str);
 
     data->signature = WEBCONFIG_MAGIC_SIGNATUTRE;
     data->type = webconfig_subdoc_type_unknown;
     data->descriptor |= webconfig_data_descriptor_encoded;
-
+    wifi_util_dbg_print(WIFI_WEBCONFIG, "%s:%d Harsha after data descriptor = %u\n", __func__, __LINE__, data->descriptor);
     ret = webconfig_set(config, data);
     if (ret != webconfig_error_none) {
         webconfig_data_free(data);
@@ -186,7 +188,7 @@ webconfig_error_t webconfig_set(webconfig_t *config, webconfig_subdoc_data_t *da
 {
     webconfig_subdoc_t  *doc;
     webconfig_error_t err = RETURN_OK;
-
+    wifi_util_info_print(WIFI_WEBCONFIG, "%s:%d: Harsha started \n", __func__, __LINE__);
     if (validate_subdoc_data(config, data) == false) {
         wifi_util_error_print(WIFI_WEBCONFIG,"%s:%d: Invalid data .. not parsable\n", __func__, __LINE__);
         return webconfig_error_invalid_subdoc;
@@ -200,27 +202,31 @@ webconfig_error_t webconfig_set(webconfig_t *config, webconfig_subdoc_data_t *da
     }
 
     if ((data->descriptor & webconfig_data_descriptor_decoded) == webconfig_data_descriptor_decoded) {
+	 wifi_util_info_print(WIFI_WEBCONFIG, "%s:%d: Harsha decode check true\n", __func__, __LINE__);
         if ((err = doc->translate_to_subdoc(config, data)) != webconfig_error_none) {
-            wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: Subdocument translation failed\n", __func__, __LINE__);
+            wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d:Harsha  Subdocument translation failed\n", __func__, __LINE__);
         } else if ((err = doc->encode_subdoc(config, data)) != webconfig_error_none) {
-            wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: Subdocument encode failed\n", __func__, __LINE__);
+            wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: Harsha Subdocument encode failed\n", __func__, __LINE__);
         } else if ((data->descriptor = webconfig_data_descriptor_encoded)
                     && (config->apply_data(doc, data)) != webconfig_error_none) {
-            wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d Subdocument apply failed\n", __func__, __LINE__);
+            wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d Harsha Subdocument apply failed\n", __func__, __LINE__);
             err = webconfig_error_apply;
         }
+	 wifi_util_info_print(WIFI_WEBCONFIG, "%s:%d:Harsha decoded check done  \n", __func__, __LINE__);
     } else if ((data->descriptor & webconfig_data_descriptor_encoded) == webconfig_data_descriptor_encoded) {
+	 wifi_util_info_print(WIFI_WEBCONFIG, "%s:%d: encoded check true  \n", __func__, __LINE__);
         if ((err = doc->decode_subdoc(config, data)) != webconfig_error_none) {
-            wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: Subdocument decode failed\n", __func__, __LINE__);
+            wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: Harsha Subdocument decode failed\n", __func__, __LINE__);
         } else if ((err = doc->translate_from_subdoc(config, data)) != webconfig_error_none) {
-            wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: Subdocument translation failed\n", __func__, __LINE__);
+            wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: Harsha Subdocument translation failed\n", __func__, __LINE__);
         } else if ((data->descriptor = webconfig_data_descriptor_decoded)
                     && (config->apply_data(doc, data)) != webconfig_error_none) {
-            wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d Subdocument apply failed\n", __func__, __LINE__);
+            wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d Harsha Subdocument apply failed\n", __func__, __LINE__);
             err = webconfig_error_apply;
         }
+	 wifi_util_info_print(WIFI_WEBCONFIG, "%s:%d: encoded check done \n", __func__, __LINE__);
     }
-
+    wifi_util_info_print(WIFI_WEBCONFIG, "%s:%d: Harsha exit \n", __func__, __LINE__);
 
     data->descriptor = 0;
 
@@ -231,10 +237,13 @@ webconfig_error_t webconfig_set(webconfig_t *config, webconfig_subdoc_data_t *da
 static webconfig_error_t translate_to_proto(webconfig_subdoc_type_t type, webconfig_subdoc_data_t *data)
 {
 #if defined EASY_MESH_NODE || defined EASY_MESH_COLOCATED_NODE
+    wifi_util_info_print(WIFI_WEBCONFIG, "%s:%d: Harsha translate to easy mesh tables\n", __func__, __LINE__);
     return(translate_to_easymesh_tables(type, data));
 #elif ONEWIFI_OVSDB_TABLE_SUPPORT
+    wifi_util_info_print(WIFI_WEBCONFIG, "%s:%d: Harsha translate to ovsdb tables \n", __func__, __LINE__);
     return(translate_to_ovsdb_tables(type, data));
 #else
+    wifi_util_info_print(WIFI_WEBCONFIG, "%s:%d: Harsha done \n", __func__, __LINE__);
     return webconfig_error_none;
 #endif
 }
@@ -242,10 +251,13 @@ static webconfig_error_t translate_to_proto(webconfig_subdoc_type_t type, webcon
 static webconfig_error_t translate_from_proto(webconfig_subdoc_type_t type, webconfig_subdoc_data_t *data)
 {
 #if defined EASY_MESH_NODE || defined EASY_MESH_COLOCATED_NODE
+    wifi_util_info_print(WIFI_WEBCONFIG, "%s:%d: Harsha translate from easy mesh tables\n", __func__, __LINE__);
     return(translate_from_easymesh_tables(type, data));
 #elif ONEWIFI_OVSDB_TABLE_SUPPORT
+    wifi_util_info_print(WIFI_WEBCONFIG, "%s:%d: Harsha translate from ovsdb tables\n", __func__, __LINE__);
     return(translate_from_ovsdb_tables(type, data));
 #else
+    wifi_util_info_print(WIFI_WEBCONFIG, "%s:%d: Harsha done \n", __func__, __LINE__);
     return webconfig_error_none;
 #endif
 }

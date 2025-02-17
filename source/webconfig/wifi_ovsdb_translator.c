@@ -995,7 +995,7 @@ webconfig_error_t webconfig_ovsdb_encode(webconfig_t *config,
     // rdk_wifi_radio_state change is added to avoid redundant config update from ovsm
     // this redundant update is triggered as part of ovsm config table update
     rdk_wifi_radio_t *rdk_wifi_radio_state;
-    wifi_util_info_print(WIFI_WEBCONFIG, "%s:%d: OVSM encode subdoc type %d\n", __func__, __LINE__,
+    wifi_util_info_print(WIFI_WEBCONFIG, "%s:%d: Harsha OVSM encode subdoc type %d\n", __func__, __LINE__,
         type);
 
     webconfig_ovsdb_data.u.decoded.external_protos = (webconfig_external_ovsdb_t *)data;
@@ -1053,7 +1053,7 @@ webconfig_error_t webconfig_ovsdb_decode(webconfig_t *config, const char *str,
         return webconfig_error_decode;
     }
 
-    wifi_util_info_print(WIFI_WEBCONFIG, "%s:%d: OVSM decode subdoc type %d sucessfully\n",
+    wifi_util_info_print(WIFI_WEBCONFIG, "%s:%d:Harsha  OVSM decode subdoc type %d sucessfully\n",
         __func__, __LINE__, webconfig_ovsdb_data.type);
     *type = webconfig_ovsdb_data.type;
     debug_external_protos(&webconfig_ovsdb_data, __func__, __LINE__);
@@ -1819,6 +1819,7 @@ BOOL update_secmode_for_wpa3(wifi_vap_info_t *vap_info, char *mode_str, int mode
     }
 
     if (to_ovsdb) {
+	 wifi_util_info_print(WIFI_WEBCONFIG, "%s:%d: Harsha to _ovsdb is true \n", __func__, __LINE__);
         if ((vap_info->u.bss_info.security.mode == wifi_security_mode_wpa3_transition) || (vap_info->u.bss_info.security.mode == wifi_security_mode_wpa3_personal)) {
             snprintf(mode_str, mode_len, "2");
             snprintf(encrypt_str, encrypt_len, "WPA-PSK");
@@ -1834,6 +1835,7 @@ BOOL update_secmode_for_wpa3(wifi_vap_info_t *vap_info, char *mode_str, int mode
             ret = true;
         }
     } else {
+	 wifi_util_info_print(WIFI_WEBCONFIG, "%s:%d: Harsha to_ovsdb is false \n", __func__, __LINE__);
         if ((vap_info->u.bss_info.security.mode == wifi_security_mode_wpa3_transition) || (vap_info->u.bss_info.security.mode == wifi_security_mode_wpa3_personal)
         || (vap_info->u.bss_info.security.mode == wifi_security_mode_wpa3_enterprise) || (vap_info->u.bss_info.security.mode == wifi_security_mode_enhanced_open)) {
             ret = true;
@@ -2633,7 +2635,7 @@ webconfig_error_t translate_vap_info_to_vif_state_common(const wifi_vap_info_t *
     // Unset all unused parameters
     vap_row->wds_exists = false;
     vap_row->ft_mobility_domain_exists=false;
-
+    wifi_util_info_print(WIFI_WEBCONFIG, "%s:%d: Harsha done \n", __func__, __LINE__);
     return webconfig_error_none;
 }
 
@@ -2675,7 +2677,7 @@ static webconfig_error_t translate_vap_info_to_vif_state_sec_legacy(wifi_vap_inf
         set_translator_state_security_key_value(vap_row, &index, "encryption", "OPEN");
         return webconfig_error_none;
     }
-
+    wifi_util_info_print(WIFI_WEBCONFIG, "%s:%d: Harsha sec mode:%d \n", __func__, __LINE__,vap->u.bss_info.security.mode);
     if (!update_secmode_for_wpa3(vap, str_mode, sizeof(str_mode), str_encryp, sizeof(str_encryp),
         true)) {
         wifi_security_modes_t mode_enum = vap->u.bss_info.security.mode;
@@ -2683,13 +2685,15 @@ static webconfig_error_t translate_vap_info_to_vif_state_sec_legacy(wifi_vap_inf
         if (key_mgmt_conversion_legacy(&mode_enum,
             &encryp_enum, str_mode, sizeof(str_mode), str_encryp,
             sizeof(str_encryp), ENUM_TO_STRING) != RETURN_OK) {
-            wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d failed to convert key mgmt: "
+            wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d Harsha failed to convert key mgmt: "
                 "security mode 0x%x encr 0x%x\n", __func__, __LINE__, vap->u.bss_info.security.mode,
                 vap->u.bss_info.security.encr);
             return webconfig_error_translate_to_ovsdb;
         }
     }
-
+    wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d Harsha to convert key mgmt: security mode 0x%x encr 0x%x\n", __func__, __LINE__, vap->u.bss_info.security.mode,
+                vap->u.bss_info.security.encr);
+     wifi_util_info_print(WIFI_WEBCONFIG, "%s:%d: Harsha mode:%s encryp:%s \n", __func__, __LINE__,str_mode, str_encryp);
     set_translator_state_security_key_value(vap_row, &index, "encryption", str_encryp);
     set_translator_state_security_key_value(vap_row, &index, "mode", str_mode);
 
@@ -2704,7 +2708,8 @@ static webconfig_error_t translate_vap_info_to_vif_state_sec_legacy(wifi_vap_inf
         set_translator_state_security_key_value(vap_row, &index, "oftag",
             vap->u.bss_info.security.key_id);
     }
-
+    wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d Harsha done to convert key mgmt: security mode 0x%x encr 0x%x\n", __func__, __LINE__, vap->u.bss_info.security.mode,
+                vap->u.bss_info.security.encr);
     return webconfig_error_none;
 }
 
@@ -2719,7 +2724,7 @@ static webconfig_error_t translate_vap_info_to_vif_state_sec_new(wifi_vap_info_t
         vap_row->wpa_key_mgmt_len = 0;
         return webconfig_error_none;
     }
-
+     wifi_util_info_print(WIFI_WEBCONFIG, "%s:%d: Harsha:sec mode :%d \n", __func__, __LINE__,vap->u.bss_info.security.mode);
     enum_sec = vap->u.bss_info.security.mode;
     if (key_mgmt_conversion(&enum_sec, vap_row->wpa_key_mgmt[0],
         vap_row->wpa_key_mgmt[1], sizeof(vap_row->wpa_key_mgmt[0]),
@@ -2770,11 +2775,13 @@ static webconfig_error_t translate_vap_info_to_vif_state_sec(wifi_vap_info_t *va
     }
 
     if (sec_schema_is_legacy) {
+	wifi_util_info_print(WIFI_WEBCONFIG, "%s:%d: Harsha sec schema legacy is true \n", __func__, __LINE__);
         if ((ret = translate_vap_info_to_vif_state_sec_legacy(vap,
             vap_row)) != webconfig_error_none) {
             return ret;
         }
     } else {
+	wifi_util_info_print(WIFI_WEBCONFIG, "%s:%d: Harsha schema is false \n", __func__, __LINE__);
         if ((ret = translate_vap_info_to_vif_state_sec_new(vap,
             vap_row)) != webconfig_error_none) {
             return ret;
@@ -3397,7 +3404,7 @@ webconfig_error_t   translate_vap_object_to_ovsdb_vif_state_for_dml(webconfig_su
 
             if (is_vap_private(wifi_prop, vap->vap_index) == TRUE) {
                 if (translate_private_vap_info_to_vif_state(vap, iface_map, vap_row, wifi_prop, sec_schema_is_legacy) != webconfig_error_none) {
-                    wifi_util_dbg_print(WIFI_WEBCONFIG,"%s:%d: Translation of private vap to ovsdb failed for %d\n", __func__, __LINE__, vap->vap_index);
+                    wifi_util_dbg_print(WIFI_WEBCONFIG,"%s:%d:Harsha  Translation of private vap to ovsdb failed for %d\n", __func__, __LINE__, vap->vap_index);
                     return webconfig_error_translate_to_ovsdb;
                 }
                 presence_mask |= (1 << vap->vap_index);
@@ -7397,16 +7404,16 @@ webconfig_error_t   translate_to_ovsdb_tables(webconfig_subdoc_type_t type, webc
         return webconfig_error_invalid_subdoc;
     }
 
-    wifi_util_dbg_print(WIFI_WEBCONFIG, "%s:%d: subdoc_type:%d\n", __func__, __LINE__, type);
+    wifi_util_dbg_print(WIFI_WEBCONFIG, "%s:%d:Harsha  subdoc_type:%d\n", __func__, __LINE__, type);
     switch (type) {
         case webconfig_subdoc_type_private:
             if (translate_vap_object_to_ovsdb_vif_state(data, "private_ssid") != webconfig_error_none) {
-                wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: webconfig_subdoc_type_private vap_object translation to ovsdb failed\n", __func__, __LINE__);
+                wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d:Harsha  webconfig_subdoc_type_private vap_object translation to ovsdb failed\n", __func__, __LINE__);
                 return webconfig_error_translate_to_ovsdb;
             }
 
             if (translate_vap_object_to_ovsdb_vif_config_for_private(data) != webconfig_error_none) {
-                wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: webconfig_subdoc_type_private vap_object translation to ovsdb failed\n", __func__, __LINE__);
+                wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: Harsha webconfig_subdoc_type_private vap_object translation to ovsdb failed\n", __func__, __LINE__);
                 return webconfig_error_translate_to_ovsdb;
             }
         break;
@@ -7518,6 +7525,7 @@ webconfig_error_t   translate_to_ovsdb_tables(webconfig_subdoc_type_t type, webc
         break;
 
         case webconfig_subdoc_type_dml:
+	    wifi_util_info_print(WIFI_WEBCONFIG, "%s:%d: Harsha dml  \n", __func__, __LINE__);
             // translate rif, vif tables for all rows
             if (translate_radio_object_to_ovsdb_radio_config_for_dml(data) != webconfig_error_none) {
                 wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: webconfig_subdoc_type_dml radio_object translation to ovsdb failed\n", __func__, __LINE__);
@@ -7601,6 +7609,7 @@ webconfig_error_t   translate_to_ovsdb_tables(webconfig_subdoc_type_t type, webc
         break;
 
     }
+    wifi_util_info_print(WIFI_WEBCONFIG, "%s:%d: Harsha done \n", __func__, __LINE__);
     return webconfig_error_none;
 }
 
@@ -7611,18 +7620,18 @@ webconfig_error_t   translate_from_ovsdb_tables(webconfig_subdoc_type_t type, we
         return webconfig_error_invalid_subdoc;
     }
 
-    wifi_util_dbg_print(WIFI_WEBCONFIG, "%s:%d: subdoc_type:%d\n", __func__, __LINE__, type);
+    wifi_util_dbg_print(WIFI_WEBCONFIG, "%s:%d: Harsha subdoc_type:%d\n", __func__, __LINE__, type);
     switch (type) {
         case webconfig_subdoc_type_private:
             if (translate_vap_object_from_ovsdb_vif_config_for_private(data) != webconfig_error_none) {
-                wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: webconfig_subdoc_type_private vap_object translation from ovsdb failed\n", __func__, __LINE__);
+                wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d:Harsha  webconfig_subdoc_type_private vap_object translation from ovsdb failed\n", __func__, __LINE__);
                 return webconfig_error_translate_from_ovsdb;
             }
         break;
 
         case webconfig_subdoc_type_home:
             if (translate_vap_object_from_ovsdb_vif_config_for_home(data) != webconfig_error_none) {
-                wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: webconfig_subdoc_type_home vap_object translation from ovsdb failed\n", __func__, __LINE__);
+                wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: Harsha webconfig_subdoc_type_home vap_object translation from ovsdb failed\n", __func__, __LINE__);
                 return webconfig_error_translate_from_ovsdb;
             }
         break;
@@ -7678,6 +7687,7 @@ webconfig_error_t   translate_from_ovsdb_tables(webconfig_subdoc_type_t type, we
 
         case webconfig_subdoc_type_dml:
             // translate rif, vif tables for all rows
+	    wifi_util_info_print(WIFI_WEBCONFIG, "%s:%d: Harsha dml \n", __func__, __LINE__);
             if (translate_radio_object_from_ovsdb_radio_config_for_dml(data) != webconfig_error_none) {
                 wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: webconfig_subdoc_type_dml radio_object translation from ovsdb failed\n", __func__, __LINE__);
                 return webconfig_error_translate_from_ovsdb;
@@ -7742,5 +7752,6 @@ webconfig_error_t   translate_from_ovsdb_tables(webconfig_subdoc_type_t type, we
         break;
 
     }
+    wifi_util_info_print(WIFI_WEBCONFIG, "%s:%d: Harsha done \n", __func__, __LINE__);
     return webconfig_error_none;
 }
