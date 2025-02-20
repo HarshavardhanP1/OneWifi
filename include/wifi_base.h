@@ -817,6 +817,18 @@ typedef struct {
 } __attribute__((__packed__)) assoc_req_elem_t;
 
 typedef struct {
+    mac_address_t sta_mac;
+    int assoc_akm;
+    int eapol_akm;
+    int expected_akm_24_24_count;
+    int expected_akm_8_8_count;
+    int expected_akm_2_2_count;
+    int less_than_expected_akm_24_8_count;
+    int less_than_expected_akm_24_2_count;
+    int less_than_expected_akm_8_2_count;
+} telemetry_data_t;
+
+typedef struct {
     int ap_index;
     wifi_associated_dev3_t dev_stats;
     int reason;
