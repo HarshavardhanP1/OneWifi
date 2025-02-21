@@ -3237,7 +3237,8 @@ void deinit_wifi_monitor()
                 }
             }
             hash_map_destroy(g_monitor_module.bssid_data[i].wpa3_sta_map);
-
+	}
+    }
     hash_map_destroy(g_monitor_module.clctr_subscriber_map);
 
     pthread_mutex_destroy(&g_monitor_module.queue_lock);
