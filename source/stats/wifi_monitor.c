@@ -1087,8 +1087,11 @@ void telemetry_event_wpa3_enhanced(int vapindex, char *mac, int rsnvariant, fram
              "%d,%s,%d,%d,%d,%d,%s", vapindex, mac, rsnvariant, frame_type, key_mgmt, mode, status);
     strncpy(telemetry_buff_str, telemetry_buff, sizeof(telemetry_buff_str) - 1);
     telemetry_buff_str[sizeof(telemetry_buff_str) - 1] = '\0';
-    wifi_util_dbg_print(WIFI_MON, "%s:%s\n", telemetry_buff_str, telemetry_val);
-    get_stubs_descriptor()->t2_event_s_fn(telemetry_buff, telemetry_val);
+    wifi_util_dbg_print(WIFI_TEL, "%s:%s\n", telemetry_buff_str, telemetry_val);
+    if ((access("/nvram/wifiTelDbg", R_OK)) == 0) {
+        get_stubs_descriptor()->t2_event_s_fn(telemetry_buff, telemetry_val);
+	wifi_util_dbg_print(WIFI_TEL, "%s %d wifiTelDbg is enabled hence sent telemetry event\n", __func__, __LINE__);
+    }
 }
 
 void wpa3_enhanced_connection_akms_count(telemetry_data_t *sta, int expected_akm, int actual_akm) {

@@ -819,12 +819,22 @@ void wifi_util_print(wifi_log_level_t level, wifi_dbg_type_t module, char *forma
             snprintf(module_filename, sizeof(module_filename), "wifiEc");
             break;
         }
+        case WIFI_TEL:{
+            snprintf(filename_dbg_enable, sizeof(filename_dbg_enable), LOG_PATH_PREFIX "wifiTelDbg");
+            snprintf(module_filename, sizeof(module_filename), "wifiTelemetry");
+            break;
+        }
         default:
             return;
     }
 
     if ((access(filename_dbg_enable, R_OK)) == 0) {
-        snprintf(filename, sizeof(filename), "/tmp/%s", module_filename);
+	if (module != WIFI_TEL) {
+            snprintf(filename, sizeof(filename), "/tmp/%s", module_filename);
+	}
+	else {
+	    snprintf(filename, sizeof(filename), "/rdklogs/logs/%s.txt", module_filename);
+	}
         fpg = fopen(filename, "a+");
         if (fpg == NULL) {
             return;
