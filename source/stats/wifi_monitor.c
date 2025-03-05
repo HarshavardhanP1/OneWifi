@@ -1068,7 +1068,79 @@ void telemetry_event_akm_count(telemetry_data_t *sta1,int vapindex, char *mac) {
     get_stubs_descriptor()->t2_event_s_fn(telemetry_buff, telemetry_val);
 }
 
-void telemetry_event_wpa3_enhanced(int vapindex, char *mac, int rsnvariant, frame_type_t frame_type, int key_mgmt, wifi_security_modes_t mode, const char *status) {
+#define LOG_LIMIT_PATH "/nvram/log_limit"
+#define DEFAULT_LOG_LIMIT 5
+int get_log_limit()
+{
+    FILE *fp = NULL;
+    int log_limit = DEFAULT_LOG_LIMIT;
+    if (access(LOG_LIMIT_PATH, R_OK) == 0) {
+        fp = fopen(LOG_LIMIT_PATH, "r");
+        if (fp == NULL) {
+            wifi_util_dbg_print(WIFI_MON,"%s:%d: file is empty for log limit \n",__func__, __LINE__);
+            return log_limit;
+        }
+        fscanf(fp, "%d", &log_limit);
+        fclose(fp);
+    }
+    return log_limit;
+}
+
+#define LOG_INTERVAL_PATH "/nvram/log_interval"
+#define DEFAULT_LOG_INTERVAL 5
+int get_log_interval()
+{
+    FILE *fp = NULL;
+    int log_interval = DEFAULT_LOG_INTERVAL;
+    if (access(LOG_INTERVAL_PATH, R_OK) == 0) {
+        fp = fopen(LOG_INTERVAL_PATH, "r");
+        if (fp == NULL) {
+            wifi_util_dbg_print(WIFI_MON,"%s:%d: file is empty for log interval \n",__func__, __LINE__);
+            return log_interval;
+        }
+        fscanf(fp, "%d", &log_interval);
+        fclose(fp);
+    }
+    return log_interval;
+}
+
+int rate_limit_log(telemetry_data_t *data, const char *message) {
+    time_t current_time = time(NULL);
+    int found = 0;
+
+    for (int i = 0; i < MAX_MESSAGES; i++) {
+        if (strcmp(data->messages[i].msg, message) == 0) {
+            data->messages[i].msg_count++;
+            if (data->messages[i].msg_count == 1) {
+                data->messages[i].first_set_time = current_time;
+            }
+            if (data->messages[i].msg_count > get_log_limit && difftime(current_time, data->messages[i].first_set_time) > get_log_interval) {
+                wifi_util_info_print(WIFI_MON, "Time difference: %.2f seconds Log rate limit reached for message: %s \n", difftime(current_time, first_set_time),message);
+                return 0;
+            }
+            wifi_util_info_print(WIFI_MON, "Time difference: %.2f seconds count : %d message: %s \n", difftime(current_time, first_set_time),data->messages[i].msg_count,data->messages[i].msg);
+            found = 1;
+            break;
+        }
+    }
+
+    if (!found) {
+        for (int i = 0; i < MAX_MESSAGES; i++) {
+            if (data->messages[i].msg[0] == '\0') { 
+                strncpy(data->messages[i].msg, message, MSG_SIZE - 1);
+                data->messages[i].msg[MSG_SIZE - 1] = '\0'; 
+                data->messages[i].msg_count = 1;
+                data->messages[i].first_set_time = current_time;
+                wifi_util_info_print(WIFI_MON, "message is created : %s\n",data->messages[i].msg);
+                break;
+            }
+        }
+    }
+
+    return 1;
+}
+
+void telemetry_event_wpa3_enhanced(int vapindex, char *mac, int rsnvariant, frame_type_t frame_type, int key_mgmt, wifi_security_modes_t mode, const char *status, telemetry_data_t *sta) {
     char telemetry_buff[64] = {0};
     char telemetry_val[128] = {0};
     char telemetry_buff_str[64] = {0};
@@ -1087,7 +1159,10 @@ void telemetry_event_wpa3_enhanced(int vapindex, char *mac, int rsnvariant, fram
              "%d,%s,%d,%d,%d,%d,%s", vapindex, mac, rsnvariant, frame_type, key_mgmt, mode, status);
     strncpy(telemetry_buff_str, telemetry_buff, sizeof(telemetry_buff_str) - 1);
     telemetry_buff_str[sizeof(telemetry_buff_str) - 1] = '\0';
-    wifi_util_dbg_print(WIFI_MON, "%s:%s\n", telemetry_buff_str, telemetry_val);
+    if (rate_limit_log(sta, telemetry_buff_str)) {
+        wifi_util_info_print(WIFI_MON, "%s:%s\n", telemetry_buff_str, telemetry_val);
+        get_stubs_descriptor()->t2_event_s_fn(telemetry_buff, telemetry_val);
+    }
     get_stubs_descriptor()->t2_event_s_fn(telemetry_buff, telemetry_val);
 }
 
@@ -1132,18 +1207,18 @@ int set_sta_client_mode(int ap_index, char *mac, int key_mgmt, frame_type_t fram
     if (frame_type == ASSOC_REQUEST || frame_type == REASSOC_REQUEST) {
         sta->assoc_akm = key_mgmt;
         rsn_variant_t variant = (((int)security->mode == (int)SECURITY_WPA3_Compatibility)?get_rsn_variant(band, key_mgmt):0);
-        telemetry_event_wpa3_enhanced(ap_index, mac, variant, frame_type, key_mgmt, security->mode,"CONNECTION_IN_PROGRESS");
+        telemetry_event_wpa3_enhanced(ap_index, mac, variant, frame_type, key_mgmt, security->mode,"CONNECTION_IN_PROGRESS",sta);
         sta->eapol_akm = 0;
     } else if (frame_type == EAPOL) {
         sta->eapol_akm = key_mgmt;
 	rsn_variant_t variant = (((int)security->mode == (int)SECURITY_WPA3_Compatibility)?get_rsn_variant(band, key_mgmt):0);
         if (sta->assoc_akm == sta->eapol_akm) {
-            telemetry_event_wpa3_enhanced(ap_index, mac, variant, frame_type, key_mgmt, security->mode,"AKM_MATCHED_CONNECTED");
+            telemetry_event_wpa3_enhanced(ap_index, mac, variant, frame_type, key_mgmt, security->mode,"AKM_MATCHED_CONNECTED",sta);
             wifi_util_dbg_print(WIFI_MON, "%s:%d :%d assoc and eapol akms are equal for station found for vap_index:%d station :%s and set the mode:%d eapol_mode:%d assoc_mode:%d band:%d \r\n", __func__, __LINE__, (int)security->mode, ap_index, mac, key_mgmt, sta->eapol_akm, sta->assoc_akm, band);
 	    wpa3_enhanced_connection_akms_count(sta, mode, sta->eapol_akm);
         }
         else {
-            telemetry_event_wpa3_enhanced(ap_index, mac, variant, frame_type, key_mgmt, security->mode,"AKM_MISMATCH_DISCONNECTION");
+            telemetry_event_wpa3_enhanced(ap_index, mac, variant, frame_type, key_mgmt, security->mode,"AKM_MISMATCH_DISCONNECTION",sta);
             wifi_util_dbg_print(WIFI_MON, "%s:%d assoc and eapol akms are not not equal station found for vap_index:%d station :%s and set the mode:%d eapol_mode:%d assoc_mode:%d band:%d \r\n", __func__, __LINE__, ap_index, mac, key_mgmt, sta->eapol_akm, sta->assoc_akm, band);
         }
     }
