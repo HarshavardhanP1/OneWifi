@@ -822,6 +822,15 @@ typedef struct {
     frame_data_t msg_data;
 } __attribute__((__packed__)) assoc_req_elem_t;
 
+#define MSG_SIZE 32
+#define MAX_MESSAGES 10
+
+typedef struct {
+    char msg[MSG_SIZE];
+    int msg_count;
+    time_t first_set_time;
+} message_data_t;
+
 typedef struct {
     mac_address_t sta_mac;
     int assoc_akm;
@@ -832,6 +841,7 @@ typedef struct {
     int akm_24_8_count;
     int akm_24_2_count;
     int akm_8_2_count;
+    message_data_t messages[MAX_MESSAGES];
 } telemetry_data_t;
 
 typedef struct {
