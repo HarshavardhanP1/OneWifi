@@ -1160,7 +1160,6 @@ void telemetry_event_wpa3_enhanced(int vapindex, char *mac, int rsnvariant, fram
         wifi_util_info_print(WIFI_MON, "%s:%s\n", telemetry_buff_str, telemetry_val);
         get_stubs_descriptor()->t2_event_s_fn(telemetry_buff, telemetry_val);
     }
-    get_stubs_descriptor()->t2_event_s_fn(telemetry_buff, telemetry_val);
 }
 
 void wpa3_enhanced_connection_akms_count(telemetry_data_t *sta, int expected_akm, int actual_akm) {
