@@ -1112,10 +1112,10 @@ int rate_limit_log(telemetry_data_t *data, const char *message) {
         if (strcmp(data->messages[i].msg, message) == 0) {
             data->messages[i].msg_count++;
             if (data->messages[i].msg_count > get_log_limit() && difftime(current_time, data->messages[i].first_set_time) > get_log_interval()) {
-                wifi_util_info_print(WIFI_MON, "Time difference: %.2f seconds Log rate limit reached for message: %s \n", difftime(current_time, first_set_time),message);
+                wifi_util_info_print(WIFI_MON, "Time difference: %.2f seconds Log rate limit reached for message: %s \n", difftime(current_time, data->messages[i].first_set_time),message);
                 return 0;
             }
-            wifi_util_info_print(WIFI_MON, "Time difference: %.2f seconds count : %d message: %s \n", difftime(current_time, first_set_time),data->messages[i].msg_count,data->messages[i].msg);
+            wifi_util_info_print(WIFI_MON, "Time difference: %.2f seconds count : %d message: %s \n", difftime(current_time, data->messages[i].first_set_time),data->messages[i].msg_count,data->messages[i].msg);
             found = 1;
             break;
         }
