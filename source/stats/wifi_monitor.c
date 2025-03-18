@@ -1244,7 +1244,7 @@ int set_sta_client_mode(int ap_index, char *mac, int key_mgmt, frame_type_t fram
             telemetry_event_wpa3_enhanced(ap_index, mac, variant, frame_type, key_mgmt, security->mode,"AKM_MATCHED_CONNECTED", sta);
             wifi_util_dbg_print(WIFI_MON, "%s:%d :%d assoc and eapol akms are equal for station found for vap_index:%d station :%s and set the mode:%d eapol_mode:%d assoc_mode:%d band:%d \r\n", __func__, __LINE__, (int)security->mode, ap_index, mac, key_mgmt, sta->eapol_akm, sta->assoc_akm, band);
 	    wpa3_enhanced_connection_akms_count(sta, mode, sta->eapol_akm);
-	    telemetry_event_akm_count(sta,mac);
+	    telemetry_event_akm_count(sta, ap_index, mac);
         }
         else {
             telemetry_event_wpa3_enhanced(ap_index, mac, variant, frame_type, key_mgmt, security->mode,"AKM_MISMATCH_DISCONNECTION", sta);
