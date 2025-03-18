@@ -1044,7 +1044,7 @@ rsn_variant_t get_rsn_variant(wifi_band_t band, int auth_type) {
         return UNKNOWN;
     }
 }
-
+int rate_limit_log(telemetry_data_t *data, const char *message);
 void telemetry_event_akm_count(telemetry_data_t *sta1,int vapindex, char *mac) {
     char telemetry_buff[64] = {0};
     char telemetry_val[128] = {0};
@@ -1064,8 +1064,10 @@ void telemetry_event_akm_count(telemetry_data_t *sta1,int vapindex, char *mac) {
              "%d,%s,(24,24)-%d,(24,8)-%d,(24,2)-%d,(8,8)-%d,(8,2)-%d,(2,2)-%d", vapindex, mac, sta1->akm_24_24_count, sta1->akm_24_8_count, sta1->akm_24_2_count, sta1->akm_8_8_count,sta1->akm_8_2_count, sta1->akm_2_2_count);
     strncpy(telemetry_buff_grep, telemetry_buff, sizeof(telemetry_buff_grep) - 1);
     telemetry_buff_grep[sizeof(telemetry_buff_grep) - 1] = '\0';
-    wifi_util_info_print(WIFI_MON, "%s:%s\n", telemetry_buff_grep, telemetry_val);
-    get_stubs_descriptor()->t2_event_s_fn(telemetry_buff, telemetry_val);
+    if (rate_limit_log(sta1, telemetry_buff_grep) == 0) {
+        wifi_util_info_print(WIFI_MON, "%s:%s\n", telemetry_buff_grep, telemetry_val);
+        get_stubs_descriptor()->t2_event_s_fn(telemetry_buff, telemetry_val);
+    }
 }
 
 #define LOG_LIMIT_PATH "/nvram/log_limit"
@@ -1133,7 +1135,7 @@ int rate_limit_log(telemetry_data_t *data, const char *message) {
             return -1;
             wifi_util_info_print(WIFI_MON, "Message '%s' reset due to repeated input and time condition.\n", message);
         }
-	if (msg_data->repeated_counts[index] > 5) {
+	if (msg_data->repeated_counts[index] > get_log_limit()) {
 	    wifi_util_info_print(WIFI_MON, "Message '%s' skip the log as due to repeated input.\n", message);
             return -1;
 	}
@@ -1242,6 +1244,7 @@ int set_sta_client_mode(int ap_index, char *mac, int key_mgmt, frame_type_t fram
             telemetry_event_wpa3_enhanced(ap_index, mac, variant, frame_type, key_mgmt, security->mode,"AKM_MATCHED_CONNECTED", sta);
             wifi_util_dbg_print(WIFI_MON, "%s:%d :%d assoc and eapol akms are equal for station found for vap_index:%d station :%s and set the mode:%d eapol_mode:%d assoc_mode:%d band:%d \r\n", __func__, __LINE__, (int)security->mode, ap_index, mac, key_mgmt, sta->eapol_akm, sta->assoc_akm, band);
 	    wpa3_enhanced_connection_akms_count(sta, mode, sta->eapol_akm);
+	    telemetry_event_akm_count(sta,mac);
         }
         else {
             telemetry_event_wpa3_enhanced(ap_index, mac, variant, frame_type, key_mgmt, security->mode,"AKM_MISMATCH_DISCONNECTION", sta);
