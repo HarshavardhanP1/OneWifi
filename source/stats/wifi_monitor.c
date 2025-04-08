@@ -1043,7 +1043,7 @@ rsn_variant_t get_rsn_variant(wifi_band_t band, int auth_type) {
         return UNKNOWN;
     }
 }
-
+int rate_limit_log(telemetry_data_t *data, const char *message);
 void telemetry_event_akm_count(telemetry_data_t *sta1,int vapindex, char *mac) {
     char telemetry_buff[64] = {0};
     char telemetry_val[128] = {0};
@@ -1065,6 +1065,105 @@ void telemetry_event_akm_count(telemetry_data_t *sta1,int vapindex, char *mac) {
     telemetry_buff_grep[sizeof(telemetry_buff_grep) - 1] = '\0';
     wifi_util_info_print(WIFI_MON, "%s:%s\n", telemetry_buff_grep, telemetry_val);
     get_stubs_descriptor()->t2_event_s_fn(telemetry_buff, telemetry_val);
+}
+
+#define LOG_LIMIT_PATH "/nvram/log_limit"
+#define DEFAULT_LOG_LIMIT 5
+int get_log_limit()
+{
+    FILE *fp = NULL;
+    int log_limit = DEFAULT_LOG_LIMIT;
+    if (access(LOG_LIMIT_PATH, R_OK) == 0) {
+        fp = fopen(LOG_LIMIT_PATH, "r");
+        if (fp == NULL) {
+            wifi_util_dbg_print(WIFI_MON,"%s:%d: file is empty for log limit \n",__func__, __LINE__);
+            return log_limit;
+        }
+        fscanf(fp, "%d", &log_limit);
+        fclose(fp);
+    }
+    return log_limit;
+}
+
+#define LOG_INTERVAL_PATH "/nvram/log_interval"
+#define DEFAULT_LOG_INTERVAL 5
+int get_log_interval()
+{
+    FILE *fp = NULL;
+    int log_interval = DEFAULT_LOG_INTERVAL;
+    if (access(LOG_INTERVAL_PATH, R_OK) == 0) {
+        fp = fopen(LOG_INTERVAL_PATH, "r");
+        if (fp == NULL) {
+            wifi_util_dbg_print(WIFI_MON,"%s:%d: file is empty for log interval \n",__func__, __LINE__);
+            return log_interval;
+        }
+        fscanf(fp, "%d", &log_interval);
+        fclose(fp);
+    }
+    return log_interval;
+}
+
+int find_message_index(message_data_t *msg_data, const char *message) {
+    for (int i = 0; i < msg_data->msg_count; i++) {
+        if (strcmp(msg_data->messages[i], message) == 0) {
+            return i; // Return the index of the repeated message
+        }
+    }
+    return -1; // Message not found
+}
+
+int rate_limit_log(telemetry_data_t *data, const char *message) {
+    time_t current_time = time(NULL);
+    message_data_t *msg_data = &data->message_data;
+    int index = find_message_index(msg_data, message);
+
+    if (index != -1) {
+        msg_data->repeated_counts[index]++;
+        wifi_util_info_print(WIFI_MON, "Message '%s' found at index %d, repeated count: %d\n", message, index, msg_data->repeated_counts[index]);
+        if (msg_data->repeated_counts[index] > get_log_limit() && difftime(current_time, msg_data->first_set_times[index]) > get_log_interval()) {
+	    wifi_util_info_print(WIFI_MON, "Time difference: %.2f seconds Log rate limit reached for message: %s \n", difftime(current_time, msg_data->first_set_times[index]),message);
+            free(msg_data->messages[index]);
+            for (int i = index; i < msg_data->msg_count - 1; i++) {
+                msg_data->messages[i] = msg_data->messages[i + 1];
+                msg_data->repeated_counts[i] = msg_data->repeated_counts[i + 1];
+                msg_data->first_set_times[i] = msg_data->first_set_times[i + 1];
+            }
+            msg_data->msg_count--;
+            return -1;
+            wifi_util_info_print(WIFI_MON, "Message '%s' reset due to repeated input and time condition.\n", message);
+        }
+	if (msg_data->repeated_counts[index] > get_log_limit()) {
+	    wifi_util_info_print(WIFI_MON, "Message '%s' skip the log as due to repeated input.\n", message);
+            return -1;
+	}
+        return 0;
+    }
+
+    // Resize the messages array if necessary
+    if (msg_data->msg_count == msg_data->msg_capacity) {
+        msg_data->msg_capacity = msg_data->msg_capacity == 0 ? 1 : msg_data->msg_capacity * 2;
+        msg_data->messages = realloc(msg_data->messages, msg_data->msg_capacity * sizeof(char *));
+        msg_data->repeated_counts = realloc(msg_data->repeated_counts, msg_data->msg_capacity * sizeof(int));
+        msg_data->first_set_times = realloc(msg_data->first_set_times, msg_data->msg_capacity * sizeof(time_t));
+        if (msg_data->messages == NULL || msg_data->repeated_counts == NULL || msg_data->first_set_times == NULL) {
+            wifi_util_info_print(WIFI_MON, "Failed to realloc memory");
+            return -1;
+        }
+        wifi_util_info_print(WIFI_MON, "Resized messages array to capacity %d\n", msg_data->msg_capacity);
+    }
+
+    // Add the new message to the array
+    msg_data->messages[msg_data->msg_count] = malloc((strlen(message) + 1) * sizeof(char));
+    if (msg_data->messages[msg_data->msg_count] == NULL) {
+        wifi_util_info_print(WIFI_MON, "Failed to malloc memory for new message");
+        return -1;
+    }
+    strcpy(msg_data->messages[msg_data->msg_count], message);
+    msg_data->repeated_counts[msg_data->msg_count] = 0;
+    msg_data->first_set_times[msg_data->msg_count] = current_time;
+    msg_data->msg_count++;
+    wifi_util_info_print(WIFI_MON, "Added new message '%s' at index %d\n", message, msg_data->msg_count - 1);
+    return 0;
 }
 
 void telemetry_event_wpa3_enhanced(int vapindex, char *mac, int rsnvariant, frame_type_t frame_type, int key_mgmt, wifi_security_modes_t mode, const char *status) {
@@ -2606,6 +2705,21 @@ int ap_status_code(int ap_index, char *mac, int status)
         wifi_util_dbg_print(WIFI_MON,"%s:%d input mac adrress is NULL for ap_index:%d status:%d\n", __func__, __LINE__, ap_index, status);
         return -1;
     }
+
+    hash_map_t *sta_map;
+    telemetry_data_t *sta;
+    sta_map = get_wpa3_enhanced_sta_data_map(ap_index);
+    if (sta_map == NULL) {
+        wifi_util_error_print(WIFI_MON, "%s:%d sta_data map not found for vap_index:%d\r\n", __func__, __LINE__, ap_index);
+        return RETURN_ERR;
+    }
+
+    sta = (telemetry_data_t *)hash_map_get(sta_map, mac);
+    if (NULL == sta) {
+        wifi_util_error_print(WIFI_MON, "%s:%d station is not found for vap_index:%d station :%s \r\n", __func__, __LINE__, ap_index, mac);
+        return RETURN_ERR;
+    }
+
     wlan_status_code_t status_code = (wlan_status_code_t)status;
     const char  *status_string = get_status_string(status_code);
     //const char  *marker_name = get_marker_string(status_code);
@@ -2614,7 +2728,11 @@ int ap_status_code(int ap_index, char *mac, int status)
     snprintf(buff, 2048, "%s,%s,%s,%d,%s,%d\n", tmp, marker_name, status_string, status, mac, ap_index + 1);
     write_to_file(wifi_health_log, buff);
     wifi_util_dbg_print(WIFI_MON, "%s", buff);
-    get_stubs_descriptor()->t2_event_s_fn("WIFI_INFO_FrameFail",buff);
+
+    if (rate_limit_log(sta, buff) == 0) {
+           wifi_util_dbg_print(WIFI_MON, "%s", buff);
+           get_stubs_descriptor()->t2_event_s_fn("WIFI_INFO_FrameFail",buff);
+    }
     wifi_util_dbg_print(WIFI_MON,"%s:%d exit \n", __func__, __LINE__);
     return 0;
 }
@@ -2631,6 +2749,21 @@ int ap_reason_code(int ap_index, char *mac, int reason_code)
         wifi_util_dbg_print(WIFI_MON,"%s:%d input mac adrress is NULL for ap_index:%d reason:%d\n", __func__, __LINE__, ap_index, reason_code);
         return -1;
     }
+
+    hash_map_t *sta_map;
+    telemetry_data_t *sta;
+    sta_map = get_wpa3_enhanced_sta_data_map(ap_index);
+    if (sta_map == NULL) {
+        wifi_util_error_print(WIFI_MON, "%s:%d sta_data map not found for vap_index:%d\r\n", __func__, __LINE__, ap_index);
+        return RETURN_ERR;
+    }
+
+    sta = (telemetry_data_t *)hash_map_get(sta_map, mac);
+    if (NULL == sta) {
+        wifi_util_error_print(WIFI_MON, "%s:%d station is not found for vap_index:%d station :%s \r\n", __func__, __LINE__, ap_index, mac);
+        return RETURN_ERR;
+    }
+
     if ((reason_code >= 1 && reason_code <= 39) || (reason_code >= 45 && reason_code <= 66)) {
         details = reason_details[reason_code];
     }
@@ -2644,10 +2777,15 @@ int ap_reason_code(int ap_index, char *mac, int reason_code)
     snprintf(buff, 2048, "%s,%s,%d,%s,%s,%d\n", tmp, marker_name, reason_code, reason_string, mac, ap_index + 1);
     write_to_file(wifi_health_log, buff);
     wifi_util_dbg_print(WIFI_MON, "%s", buff);
-    get_stubs_descriptor()->t2_event_s_fn("WIFI_INFO_Dissassociate_reason4",buff);
+
+    if (rate_limit_log(sta, buff) == 0) {
+           wifi_util_dbg_print(WIFI_MON, "%s", buff);
+           get_stubs_descriptor()->t2_event_s_fn("WIFI_INFO_Dissassociate_reason4",buff);
+    }
     wifi_util_dbg_print(WIFI_MON,"%s:%d exit \n", __func__, __LINE__);
     return 0;
 }
+
 
 int device_disassociated(int ap_index, char *mac, int reason)
 {
