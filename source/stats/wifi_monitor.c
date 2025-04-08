@@ -1119,9 +1119,9 @@ int rate_limit_log(telemetry_data_t *data, const char *message) {
 
     if (index != -1) {
         msg_data->repeated_counts[index]++;
-        wifi_util_info_print(WIFI_MON, "Message '%s' found at index %d, repeated count: %d\n", message, index, msg_data->repeated_counts[index]);
+        wifi_util_info_print(WIFI_MON, "%s:%d Message '%s' found at index %d, repeated count: %d\n",__func__, __LINE__, message, index, msg_data->repeated_counts[index]);
         if (msg_data->repeated_counts[index] > get_log_limit() && difftime(current_time, msg_data->first_set_times[index]) > get_log_interval()) {
-	    wifi_util_info_print(WIFI_MON, "Time difference: %.2f seconds Log rate limit reached for message: %s \n", difftime(current_time, msg_data->first_set_times[index]),message);
+	    wifi_util_info_print(WIFI_MON, " %s:%d Time difference: %.2f seconds Log rate limit reached for message: %s \n",__func__, __LINE__, difftime(current_time, msg_data->first_set_times[index]),message);
             free(msg_data->messages[index]);
             for (int i = index; i < msg_data->msg_count - 1; i++) {
                 msg_data->messages[i] = msg_data->messages[i + 1];
@@ -1130,10 +1130,10 @@ int rate_limit_log(telemetry_data_t *data, const char *message) {
             }
             msg_data->msg_count--;
             return -1;
-            wifi_util_info_print(WIFI_MON, "Message '%s' reset due to repeated input and time condition.\n", message);
+            wifi_util_info_print(WIFI_MON, " %s:%d Message '%s' reset due to repeated input and time condition.\n",__func__, __LINE__,message);
         }
 	if (msg_data->repeated_counts[index] > get_log_limit()) {
-	    wifi_util_info_print(WIFI_MON, "Message '%s' skip the log as due to repeated input.\n", message);
+	    wifi_util_info_print(WIFI_MON, "%s:%d Message '%s' skip the log as due to repeated input.\n",__func__, __LINE__,message);
             return -1;
 	}
         return 0;
@@ -1146,23 +1146,23 @@ int rate_limit_log(telemetry_data_t *data, const char *message) {
         msg_data->repeated_counts = realloc(msg_data->repeated_counts, msg_data->msg_capacity * sizeof(int));
         msg_data->first_set_times = realloc(msg_data->first_set_times, msg_data->msg_capacity * sizeof(time_t));
         if (msg_data->messages == NULL || msg_data->repeated_counts == NULL || msg_data->first_set_times == NULL) {
-            wifi_util_info_print(WIFI_MON, "Failed to realloc memory");
+            wifi_util_info_print(WIFI_MON, " %s:%d Failed to realloc memory",__func__, __LINE__);
             return -1;
         }
-        wifi_util_info_print(WIFI_MON, "Resized messages array to capacity %d\n", msg_data->msg_capacity);
+        wifi_util_info_print(WIFI_MON, "%s:%d Resized messages array to capacity %d\n",__func__, __LINE__,msg_data->msg_capacity);
     }
 
     // Add the new message to the array
     msg_data->messages[msg_data->msg_count] = malloc((strlen(message) + 1) * sizeof(char));
     if (msg_data->messages[msg_data->msg_count] == NULL) {
-        wifi_util_info_print(WIFI_MON, "Failed to malloc memory for new message");
+        wifi_util_info_print(WIFI_MON, "%s:%d Failed to malloc memory for new message",__func__, __LINE__);
         return -1;
     }
     strcpy(msg_data->messages[msg_data->msg_count], message);
     msg_data->repeated_counts[msg_data->msg_count] = 0;
     msg_data->first_set_times[msg_data->msg_count] = current_time;
     msg_data->msg_count++;
-    wifi_util_info_print(WIFI_MON, "Added new message '%s' at index %d\n", message, msg_data->msg_count - 1);
+    wifi_util_info_print(WIFI_MON, "%s:%d Added new message '%s' at index %d\n",__func__, __LINE__,message, msg_data->msg_count - 1);
     return 0;
 }
 
@@ -2725,7 +2725,7 @@ int ap_status_code(int ap_index, char *mac, int status)
     //const char  *marker_name = get_marker_string(status_code);
     const char  *marker_name = "WIFI_INFO_FrameFail";
     get_formatted_time(tmp);
-    snprintf(buff, 2048, "%s,%s,%s,%d,%s,%d\n", tmp, marker_name, status_string, status, mac, ap_index + 1);
+    snprintf(buff, 2048, "%s,%s,%d,%s,%d\n",marker_name, status_string, status, mac, ap_index + 1);
     write_to_file(wifi_health_log, buff);
     wifi_util_dbg_print(WIFI_MON, "%s", buff);
 
@@ -2774,7 +2774,7 @@ int ap_reason_code(int ap_index, char *mac, int reason_code)
     marker_name = "WIFI_INFO_Dissassociate_reason4";
     reason_string = details.reason_string;
     get_formatted_time(tmp);
-    snprintf(buff, 2048, "%s,%s,%d,%s,%s,%d\n", tmp, marker_name, reason_code, reason_string, mac, ap_index + 1);
+    snprintf(buff, 2048, "%s,%d,%s,%s,%d\n", marker_name, reason_code, reason_string, mac, ap_index + 1);
     write_to_file(wifi_health_log, buff);
     wifi_util_dbg_print(WIFI_MON, "%s", buff);
 
