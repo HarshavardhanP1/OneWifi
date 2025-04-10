@@ -344,10 +344,8 @@ int update_wpa3_enhanced_sta_data(unsigned int vap_index) {
     while (sta != NULL) {
         char *sta_mac_str = to_mac_str(sta->sta_mac, mac_str);
         telemetry_event_akm_count(sta, vapindex, sta_mac_str);
-        
-        // Print and clear messages for the current station
-        print_all_messages(&sta->message_data);
-        clear_all_messages(&sta->message_data);
+        print_all_messages(&sta->message_data);
+	clear_all_messages(&sta->message_data);
         wifi_util_dbg_print(WIFI_MON, "%s:%d done freeing the message memory for STA MAC:%s \n", __func__, __LINE__, sta_mac_str);
 
 	sta = hash_map_get_next(sta_map, sta);
