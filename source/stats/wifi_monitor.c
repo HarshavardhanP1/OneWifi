@@ -312,7 +312,7 @@ int wpa3_enhanced_assoc_frame_data(frame_data_t *msg) {
 
 void print_all_messages(message_data_t *msg_data) {
     for (int i = 0; i < msg_data->msg_count; i++) {
-        wifi_hal_dbg_print(WIFI_MON, "print_all_messages Harsha Message: %s, Count: %d, First Set Time: %ld\n", msg_data->messages[i], msg_data->repeated_counts[i], msg_data->first_set_times[i]);
+        wifi_util_dbg_print(WIFI_MON, "print_all_messages Harsha Message: %s, Count: %d, First Set Time: %ld\n", msg_data->messages[i], msg_data->repeated_counts[i], msg_data->first_set_times[i]);
     }
 }
 void clear_all_messages(message_data_t *msg_data) {
