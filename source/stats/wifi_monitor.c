@@ -310,6 +310,25 @@ int wpa3_enhanced_assoc_frame_data(frame_data_t *msg) {
     return RETURN_OK;
 }
 
+void print_all_messages(message_data_t *msg_data) {
+    for (int i = 0; i < msg_data->msg_count; i++) {
+        wifi_hal_dbg_print(WIFI_MON, "print_all_messages Harsha Message: %s, Count: %d, First Set Time: %ld\n", msg_data->messages[i], msg_data->repeated_counts[i], msg_data->first_set_times[i]);
+    }
+}
+void clear_all_messages(message_data_t *msg_data) {
+    for (int i = 0; i < msg_data->msg_count; i++) {
+        free(msg_data->messages[i]); // Free each message string
+    }
+    free(msg_data->messages); // Free the messages array
+    free(msg_data->repeated_counts); // Free the repeated counts array
+    free(msg_data->first_set_times); // Free the first set times array
+    msg_data->messages = NULL;
+    msg_data->repeated_counts = NULL;
+    msg_data->first_set_times = NULL;
+    msg_data->msg_count = 0;
+    msg_data->msg_capacity = 0;
+}
+
 int update_wpa3_enhanced_sta_data(unsigned int vap_index) {
 
     hash_map_t *sta_map;
@@ -325,6 +344,12 @@ int update_wpa3_enhanced_sta_data(unsigned int vap_index) {
     while (sta != NULL) {
         char *sta_mac_str = to_mac_str(sta->sta_mac, mac_str);
         telemetry_event_akm_count(sta, vapindex, sta_mac_str);
+        
+        // Print and clear messages for the current station
+        print_all_messages(&sta->message_data);
+        clear_all_messages(&sta->message_data);
+        wifi_util_dbg_print(WIFI_MON, "%s:%d done freeing the message memory for STA MAC:%s \n", __func__, __LINE__, sta_mac_str);
+
 	sta = hash_map_get_next(sta_map, sta);
 	tmpsta=hash_map_remove(sta_map,mac_str);
 	if(tmpsta!= NULL) {
@@ -1119,7 +1144,6 @@ int rate_limit_log(telemetry_data_t *data, const char *message) {
 
     if (index != -1) {
         msg_data->repeated_counts[index]++;
-        wifi_util_info_print(WIFI_MON, "%s:%d Message '%s' found at index %d, repeated count: %d\n",__func__, __LINE__, message, index, msg_data->repeated_counts[index]);
         if (msg_data->repeated_counts[index] > get_log_limit() && difftime(current_time, msg_data->first_set_times[index]) > get_log_interval()) {
 	    wifi_util_info_print(WIFI_MON, " %s:%d Time difference: %.2f seconds Log rate limit reached for message: %s \n",__func__, __LINE__, difftime(current_time, msg_data->first_set_times[index]),message);
             free(msg_data->messages[index]);
@@ -1129,13 +1153,14 @@ int rate_limit_log(telemetry_data_t *data, const char *message) {
                 msg_data->first_set_times[i] = msg_data->first_set_times[i + 1];
             }
             msg_data->msg_count--;
+	    wifi_util_info_print(WIFI_MON, " %s:%d Message '%s' reset due to repeated input and time condition.\n",__func__, __LINE__,message);
             return -1;
-            wifi_util_info_print(WIFI_MON, " %s:%d Message '%s' reset due to repeated input and time condition.\n",__func__, __LINE__,message);
         }
 	if (msg_data->repeated_counts[index] > get_log_limit()) {
-	    wifi_util_info_print(WIFI_MON, "%s:%d Message '%s' skip the log as due to repeated input.\n",__func__, __LINE__,message);
+	    wifi_util_info_print(WIFI_MON, "%s:%d Message '%s' skip the log as due to repeated input repeated count now: %d \n",__func__, __LINE__,message,msg_data->repeated_counts[index]);
             return -1;
 	}
+        wifi_util_info_print(WIFI_MON, "%s:%d Message '%s' found at index %d, repeated count: %d time: %ld \n",__func__, __LINE__, message, index, msg_data->repeated_counts[index],msg_data->first_set_times[index]);
         return 0;
     }
 
