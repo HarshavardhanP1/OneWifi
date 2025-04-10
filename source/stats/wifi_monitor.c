@@ -165,7 +165,7 @@ extern void* bus_handle;
 #define MIN_TO_MILLISEC 60000
 #define SEC_TO_MILLISEC 1000
 
-#define MAX_AKM_REPORT_REFRESH_PERIOD 3600
+#define MAX_AKM_REPORT_REFRESH_PERIOD 600
 
 #define ASSOC_REQ_MAC_HEADER_LEN 24 + 2 + 2 // 4 bytes after mac header reserved for fixed len fields
 
