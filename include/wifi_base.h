@@ -822,6 +822,14 @@ typedef struct {
 } __attribute__((__packed__)) assoc_req_elem_t;
 
 typedef struct {
+    char **messages; // Dynamically allocated array of messages
+    int *repeated_counts; // Array to keep track of repeated counts for each message
+    time_t *first_set_times; // Array to keep track of the first set time for each message
+    int msg_count;
+    int msg_capacity;
+} message_data_t;
+
+typedef struct {
     mac_address_t sta_mac;
     int assoc_akm;
     int eapol_akm;
@@ -831,6 +839,7 @@ typedef struct {
     int akm_24_8_count;
     int akm_24_2_count;
     int akm_8_2_count;
+    message_data_t message_data; // Message-related data
 } telemetry_data_t;
 
 typedef struct {
