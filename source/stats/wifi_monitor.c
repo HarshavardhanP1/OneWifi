@@ -310,8 +310,9 @@ int wpa3_enhanced_assoc_frame_data(frame_data_t *msg) {
     return RETURN_OK;
 }
 
-void print_all_messages(message_data_t *msg_data) {
+void print_all_messages(message_data_t *msg_data, int vap_index) {
     for (int i = 0; i < msg_data->msg_count; i++) {
+        wifi_util_dbg_print(WIFI_MON, "print_all_messages Harsha Count: %d, vap_index:%d First Set Time: %ld\n", msg_data->repeated_counts[i], vap_index, msg_data->first_set_times[i]);
         wifi_util_dbg_print(WIFI_MON, "print_all_messages Harsha Message: %s, Count: %d, First Set Time: %ld\n", msg_data->messages[i], msg_data->repeated_counts[i], msg_data->first_set_times[i]);
     }
 }
@@ -345,9 +346,9 @@ int update_wpa3_enhanced_sta_data(unsigned int vap_index) {
     while (sta != NULL) {
         char *sta_mac_str = to_mac_str(sta->sta_mac, mac_str);
         telemetry_event_akm_count(sta, vapindex, sta_mac_str);
-        print_all_messages(&sta->message_data);
+        print_all_messages(&sta->message_data,vap_index);
 	clear_all_messages(&sta->message_data);
-        wifi_util_dbg_print(WIFI_MON, "%s:%d done freeing the message memory for STA MAC:%s \n", __func__, __LINE__, sta_mac_str);
+        wifi_util_dbg_print(WIFI_MON, "%s:%d done freeing the message memory for STA MAC:%s vap_index:%d \n", __func__, __LINE__, sta_mac_str, vap_index);
 	sta = hash_map_get_next(sta_map, sta);
 	tmpsta=hash_map_remove(sta_map,mac_str);
 	if(tmpsta!= NULL) {
