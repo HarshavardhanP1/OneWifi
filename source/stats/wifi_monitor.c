@@ -185,7 +185,7 @@ ULONG lastupdatedtime = 0;
 ULONG chutil_last_updated_time = 0;
 time_t lastpolledtime = 0;
 
-int device_deauthenticated(int apIndex, char *mac, int reason);
+int device_deauthenticated(int ap_index, char *src_mac, char *dest_mac, int type, int reason);
 int device_associated(int apIndex, wifi_associated_dev_t *associated_dev);
 int vapstatus_callback(int apIndex, wifi_vapstatus_t status);
 unsigned int get_upload_period  (int);
@@ -1152,8 +1152,8 @@ int set_sta_client_mode(int ap_index, char *mac, int key_mgmt, frame_type_t fram
 
 void process_deauthenticate	(unsigned int ap_index, auth_deauth_dev_t *dev)
 {
-    char buff[2048];
-    char tmp[128];
+    //char buff[2048];
+    //char tmp[128];
     sta_key_t sta_key;
 
     wifi_util_info_print(WIFI_MON, "%s:%d Device:%s deauthenticated on ap:%d with reason : %d\n", __func__, __LINE__, to_sta_key(dev->sta_mac, sta_key), ap_index, dev->reason);
@@ -2643,7 +2643,7 @@ const char *get_marker_reason_string(WlanReasonCode reason) {
 }
 
 
-int ap_status_code(int ap_index, char *src_mac, char *destmac, int type, int status)
+int ap_status_code(int ap_index, char *src_mac, char *dest_mac, int type, int status)
 {
     char tmp[128];
     char buff[2048];
@@ -2660,7 +2660,7 @@ int ap_status_code(int ap_index, char *src_mac, char *destmac, int type, int sta
     snprintf(buff, 2048, "%s,%d,%s,%d,%s,%s,%s,%d\n", tmp, type, marker_name, status, status_string, src_mac, dest_mac, ap_index);
     write_to_file(wifi_health_log, buff);
     wifi_util_dbg_print(WIFI_MON, "%s", buff);
-    get_stubs_descriptor()->t2_event_s_fn(marker_name,buff);
+    get_stubs_descriptor()->t2_event_s_fn((char *)marker_name,buff);
     wifi_util_dbg_print(WIFI_MON,"%s:%d exit \n", __func__, __LINE__);
     return 0;
 }
@@ -2669,9 +2669,9 @@ int ap_reason_code(int ap_index, char *src_mac, char *dest_mac, int type, int re
 {
     char tmp[128];
     char buff[2048];
-    ReasonDetails details;
-    const char *marker_name;
-    const char *reason_string;
+    //ReasonDetails details;
+    //const char *marker_name;
+    //const char *reason_string;
     wifi_util_dbg_print(WIFI_MON,"%s:%d start \n", __func__, __LINE__);
     if (src_mac == NULL || dest_mac == NULL) {
         wifi_util_dbg_print(WIFI_MON,"%s:%d input mac adrress is NULL for ap_index:%d reason:%d\n", __func__, __LINE__, ap_index, reason_code);
@@ -2692,7 +2692,7 @@ int ap_reason_code(int ap_index, char *src_mac, char *dest_mac, int type, int re
     snprintf(buff, 2048, "%s,%d,%s,%d,%s,%s,%s,%d\n", tmp, type, marker_name, reason_code, reason_string, src_mac, dest_mac, ap_index);
     write_to_file(wifi_health_log, buff);
     wifi_util_dbg_print(WIFI_MON, "%s", buff);
-    get_stubs_descriptor()->t2_event_s_fn(marker_name,buff);
+    get_stubs_descriptor()->t2_event_s_fn((char *)marker_name,buff);
     wifi_util_dbg_print(WIFI_MON,"%s:%d exit \n", __func__, __LINE__);
     return 0;
 }
@@ -2718,20 +2718,20 @@ int device_disassociated(int ap_index, char *src_mac, char *dest_mac, int type, 
         wifi_util_dbg_print(WIFI_MON,"Device disassociated due to Greylist\n");
         greylist_data.reason = reason;
 
-        str_to_mac_bytes(mac, grey_list_mac);
+        str_to_mac_bytes(src_mac, grey_list_mac);
         memcpy(greylist_data.sta_mac, &grey_list_mac, sizeof(mac_address_t));
-        wifi_util_dbg_print(WIFI_MON," sending Greylist mac to  ctrl queue %s\n",mac);
+        wifi_util_dbg_print(WIFI_MON," sending Greylist mac to  ctrl queue %s\n",src_mac);
         push_event_to_ctrl_queue(&greylist_data, sizeof(greylist_data), wifi_event_type_hal_ind, wifi_event_radius_greylist, NULL);
 
     }
 
-    is_sta_active = active_sta_connection_status(ap_index, mac);
+    is_sta_active = active_sta_connection_status(ap_index, src_mac);
 
     memset(&data, 0, sizeof(wifi_monitor_data_t));
     data.id = msg_id++;
 
     data.ap_index = ap_index;
-    sscanf(mac, "%02x:%02x:%02x:%02x:%02x:%02x",
+    sscanf(src_mac, "%02x:%02x:%02x:%02x:%02x:%02x",
             &mac_addr[0], &mac_addr[1], &mac_addr[2],
             &mac_addr[3], &mac_addr[4], &mac_addr[5]);
     data.u.dev.sta_mac[0] = mac_addr[0]; data.u.dev.sta_mac[1] = mac_addr[1]; data.u.dev.sta_mac[2] = mac_addr[2];
@@ -2741,7 +2741,7 @@ int device_disassociated(int ap_index, char *src_mac, char *dest_mac, int type, 
     push_event_to_monitor_queue(&data, wifi_event_monitor_disconnect, NULL);
 
     if (is_sta_active == false) {
-        wifi_util_dbg_print(WIFI_MON,"%s:%d: sta[%s] not connected with ap:[%d]\r\n", __func__, __LINE__, mac, ap_index);
+        wifi_util_dbg_print(WIFI_MON,"%s:%d: sta[%s] not connected with ap:[%d]\r\n", __func__, __LINE__, src_mac, ap_index);
         return 0;
     }
 
@@ -2895,22 +2895,22 @@ int device_deauthenticated(int ap_index, char *src_mac, char *dest_mac, int type
     }
 
     if (reason == WLAN_RADIUS_GREYLIST_REJECT) {
-        str_to_mac_bytes(mac, grey_list_mac);
+        str_to_mac_bytes(src_mac, grey_list_mac);
         wifi_util_dbg_print(WIFI_MON,"Device disassociated due to Greylist\n");
         greylist_data.reason = reason;
         memcpy(greylist_data.sta_mac, &grey_list_mac, sizeof(mac_address_t));
-        wifi_util_dbg_print(WIFI_MON,"Sending Greylist mac to ctrl queue %s\n",mac);
+        wifi_util_dbg_print(WIFI_MON,"Sending Greylist mac to ctrl queue %s\n",src_mac);
         push_event_to_ctrl_queue(&greylist_data, sizeof(greylist_data), wifi_event_type_hal_ind, wifi_event_radius_greylist, NULL);
 
     }
 
-    is_sta_active = active_sta_connection_status(ap_index, mac);
+    is_sta_active = active_sta_connection_status(ap_index, src_mac);
 
     memset(&data, 0, sizeof(wifi_monitor_data_t));
     data.id = msg_id++;
 
     data.ap_index = ap_index;
-    sscanf(mac, "%02x:%02x:%02x:%02x:%02x:%02x",
+    sscanf(src_mac, "%02x:%02x:%02x:%02x:%02x:%02x",
             &mac_addr[0], &mac_addr[1], &mac_addr[2],
             &mac_addr[3], &mac_addr[4], &mac_addr[5]);
     data.u.dev.sta_mac[0] = mac_addr[0]; data.u.dev.sta_mac[1] = mac_addr[1]; data.u.dev.sta_mac[2] = mac_addr[2];
@@ -2920,7 +2920,7 @@ int device_deauthenticated(int ap_index, char *src_mac, char *dest_mac, int type
     push_event_to_monitor_queue(&data, wifi_event_monitor_deauthenticate, NULL);
 
     if (is_sta_active == false) {
-        wifi_util_dbg_print(WIFI_MON,"%s:%d: sta[%s] not connected with ap:[%d]\r\n", __func__, __LINE__, mac, ap_index);
+        wifi_util_dbg_print(WIFI_MON,"%s:%d: sta[%s] not connected with ap:[%d]\r\n", __func__, __LINE__, src_mac, ap_index);
         return 0;
     }
 
