@@ -2642,6 +2642,22 @@ const char *get_marker_reason_string(WlanReasonCode reason) {
     }
 }
 
+const char *get_frame_type_string(wifi_mgmtFrameType_t frameType) {
+    switch (frameType) {
+        case WIFI_MGMT_FRAME_TYPE_DISASSOC:
+            return "1010";
+        case WIFI_MGMT_FRAME_TYPE_DEAUTH:
+            return "1100";
+        case WIFI_MGMT_FRAME_TYPE_AUTH:
+            return "1011";
+        case WIFI_MGMT_FRAME_TYPE_ASSOC_RSP:
+            return "1";
+        case WIFI_MGMT_FRAME_TYPE_REASSOC_RSP:
+            return "11";
+        default:
+            return "UNKNOWN";
+    }
+}
 
 int ap_status_code(int ap_index, char *src_mac, char *dest_mac, int type, int status)
 {
@@ -2653,11 +2669,17 @@ int ap_status_code(int ap_index, char *src_mac, char *dest_mac, int type, int st
         return -1;
     }
     wlan_status_code_t status_code = (wlan_status_code_t)status;
+    wifi_mgmtFrameType_t frameType = (wifi_mgmtFrameType_t)type;
     const char  *status_string = get_status_string(status_code);
     const char  *marker_name = get_marker_status_string(status_code);
+    const char  *frame_string = get_frame_type_string(frameType);
     //const char  *marker_name = "WIFI_INFO_FrameFail";
+    if (strstr(status_string, "UNKNOWN") != NULL || strstr(marker_name, "UNKNOWN") != NULL || strstr(frame_string, "UNKNOWN") != NULL ) {
+	wifi_util_dbg_print(WIFI_MON,"%s:%d status:%s marker:%s frame:%s \n", __func__, __LINE__,status_string,marker_name,frame_string);
+        return 0;
+    }
     get_formatted_time(tmp);
-    snprintf(buff, 2048, "%s,%d,%s,%d,%s,%s,%s,%d\n", tmp, type, marker_name, status, status_string, src_mac, dest_mac, ap_index);
+    snprintf(buff, 2048, "%s,%s,%d,%s,%s,%s,%d,%s\n", tmp, marker_name, ap_index+1, frame_string, src_mac, dest_mac, status, status_string);
     write_to_file(wifi_health_log, buff);
     wifi_util_dbg_print(WIFI_MON, "%s", buff);
     get_stubs_descriptor()->t2_event_s_fn((char *)marker_name,buff);
@@ -2685,11 +2707,17 @@ int ap_reason_code(int ap_index, char *src_mac, char *dest_mac, int type, int re
         details = (ReasonDetails){"UNKNOWN","UNKNOWN"};
     }*/
     WlanReasonCode reason = (WlanReasonCode)reason_code;
+    wifi_mgmtFrameType_t frameType = (wifi_mgmtFrameType_t)type;
     const char  *reason_string = get_reason_string(reason);
     const char  *marker_name = get_marker_reason_string(reason);
+    const char  *frame_string = get_frame_type_string(frameType);
     //reason_string = details.reason_string;
+    if (strstr(reason_string, "UNKNOWN") != NULL || strstr(marker_name, "UNKNOWN") != NULL || strstr(frame_string, "UNKNOWN") != NULL) {
+	wifi_util_dbg_print(WIFI_MON,"%s:%d reason:%s marker:%s frame:%s \n", __func__, __LINE__,reason_string,marker_name,frame_string);
+        return 0;
+    }
     get_formatted_time(tmp);
-    snprintf(buff, 2048, "%s,%d,%s,%d,%s,%s,%s,%d\n", tmp, type, marker_name, reason_code, reason_string, src_mac, dest_mac, ap_index);
+    snprintf(buff, 2048, "%s,%s,%d,%s,%s,%s,%d,%s\n", tmp, marker_name, ap_index+1, frame_string, src_mac, dest_mac, reason_code, reason_string);
     write_to_file(wifi_health_log, buff);
     wifi_util_dbg_print(WIFI_MON, "%s", buff);
     get_stubs_descriptor()->t2_event_s_fn((char *)marker_name,buff);
