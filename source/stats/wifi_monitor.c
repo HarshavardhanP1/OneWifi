@@ -2425,7 +2425,7 @@ bool active_sta_connection_status(int ap_index, char *mac)
     return true;
 }
 
-ReasonDetails reason_details[] = {
+/*ReasonDetails reason_details[] = {
     [AWLAN_REASON_UNSPECIFIED]                = {"WLAN_REASON_UNSPECIFIED", "WLAN_REASON_UNSPECIFIED"},
     [AWLAN_REASON_PREV_AUTH_NOT_VALID]        = {"WLAN_REASON_PREV_AUTH_NOT_VALID", "WLAN_REASON_PREV_AUTH_NOT_VALID"},
     [AWLAN_REASON_DEAUTH_LEAVING]             = {"WLAN_REASON_DEAUTH_LEAVING", "WLAN_REASON_DEAUTH_LEAVING"},
@@ -2487,11 +2487,11 @@ ReasonDetails reason_details[] = {
     [AWLAN_REASON_MAC_ADDRESS_ALREADY_EXISTS_IN_MBSS] = {"WLAN_REASON_MAC_ADDRESS_ALREADY_EXISTS_IN_MBSS", "WLAN_REASON_MAC_ADDRESS_ALREADY_EXISTS_IN_MBSS"},
     [AWLAN_REASON_MESH_CHANNEL_SWITCH_REGULATORY_REQ] = {"WLAN_REASON_MESH_CHANNEL_SWITCH_REGULATORY_REQ", "WLAN_REASON_MESH_CHANNEL_SWITCH_REGULATORY_REQ"},
     [AWLAN_REASON_MESH_CHANNEL_SWITCH_UNSPECIFIED] = {"WLAN_REASON_MESH_CHANNEL_SWITCH_UNSPECIFIED", "WLAN_REASON_MESH_CHANNEL_SWITCH_UNSPECIFIED"}
-};
+};*/
 
 const char *get_status_string(wlan_status_code_t status) {
     switch (status) {
-        case AWLAN_STATUS_SUCCESS: return "WLAN_STATUS_SUCCESS";
+        /*case AWLAN_STATUS_SUCCESS: return "WLAN_STATUS_SUCCESS";
         case AWLAN_STATUS_UNSPECIFIED_FAILURE: return "WLAN_STATUS_UNSPECIFIED_FAILURE";
         case AWLAN_STATUS_TDLS_WAKEUP_ALTERNATE: return "WLAN_STATUS_TDLS_WAKEUP_ALTERNATE";
         case AWLAN_STATUS_TDLS_WAKEUP_REJECT: return "WLAN_STATUS_TDLS_WAKEUP_REJECT";
@@ -2591,35 +2591,83 @@ const char *get_status_string(wlan_status_code_t status) {
         case AWLAN_STATUS_UNKNOWN_PASSWORD_IDENTIFIER: return "WLAN_STATUS_UNKNOWN_PASSWORD_IDENTIFIER";
         case AWLAN_STATUS_DENIED_HE_NOT_SUPPORTED: return "WLAN_STATUS_DENIED_HE_NOT_SUPPORTED";
         case AWLAN_STATUS_SAE_HASH_TO_ELEMENT: return "WLAN_STATUS_SAE_HASH_TO_ELEMENT";
-        case AWLAN_STATUS_SAE_PK: return "WLAN_STATUS_SAE_PK";
+        case AWLAN_STATUS_SAE_PK: return "WLAN_STATUS_SAE_PK";*/
+        case AWLAN_STATUS_UNSPECIFIED_FAILURE: return "WLAN_STATUS_UNSPECIFIED_FAILURE";
+        case AWLAN_STATUS_AUTH_TIMEOUT: return "WLAN_STATUS_AUTH_TIMEOUT";
+        case AWLAN_STATUS_ASSOC_REJECTED_TEMPORARILY: return "WLAN_STATUS_ASSOC_REJECTED_TEMPORARILY";
+        case AWLAN_STATUS_ROBUST_MGMT_FRAME_POLICY_VIOLATION: return "WLAN_STATUS_ROBUST_MGMT_FRAME_POLICY_VIOLATION";
+        case AWLAN_STATUS_AKMP_NOT_VALID: return "WLAN_STATUS_AKMP_NOT_VALID";
+        case AWLAN_STATUS_INVALID_PMKID: return "WLAN_STATUS_INVALID_PMKID";
         default: return "UNKNOWN_STATUS";
     }
 }
 
 
-int ap_status_code(int ap_index, char *mac, int status)
+const char *get_marker_status_string(wlan_status_code_t status) {
+    switch (status) {
+        case AWLAN_STATUS_UNSPECIFIED_FAILURE: return "WLAN_INFO_1";
+        case AWLAN_STATUS_AUTH_TIMEOUT: return "WLAN_INFO_16";
+        case AWLAN_STATUS_ASSOC_REJECTED_TEMPORARILY: return "WLAN_INFO_30";
+        case AWLAN_STATUS_ROBUST_MGMT_FRAME_POLICY_VIOLATION: return "WLAN_INFO_31";
+        case AWLAN_STATUS_AKMP_NOT_VALID: return "WLAN_INFO_43";
+        case AWLAN_STATUS_INVALID_PMKID: return "WLAN_INFO_53";
+        default: return "WLAN_INFO_UNKNOWN";
+    }
+}
+
+const char *get_reason_string(WlanReasonCode reason) {
+    switch (reason) {
+        case AWLAN_REASON_UNSPECIFIED: return "WLAN_REASON_UNSPECIFIED";
+        case AWLAN_REASON_PREV_AUTH_NOT_VALID: return "WLAN_REASON_PREV_AUTH_NOT_VALID";
+        case AWLAN_REASON_DEAUTH_LEAVING: return "WLAN_REASON_DEAUTH_LEAVING";
+        case AWLAN_REASON_STA_REQ_ASSOC_WITHOUT_AUTH: return "WLAN_REASON_STA_REQ_ASSOC_WITHOUT_AUTH";
+        case AWLAN_REASON_MICHAEL_MIC_FAILURE: return "WLAN_REASON_MICHAEL_MIC_FAILURE ";
+        case AWLAN_REASON_4WAY_HANDSHAKE_TIMEOUT: return "WLAN_REASON_4WAY_HANDSHAKE_TIMEOUT";
+        case AWLAN_REASON_AKMP_NOT_VALID: return "WLAN_REASON_AKMP_NOT_VALID";
+        case AWLAN_REASON_IEEE_802_1X_AUTH_FAILED: return "WLAN_REASON_IEEE_802_1X_AUTH_FAILED";
+        case AWLAN_REASON_INVALID_PMKID: return "WLAN_REASON_INVALID_PMKID";
+        default: return "UNKNOWN_REASON";
+    }
+}
+const char *get_marker_reason_string(WlanReasonCode reason) {
+    switch (reason) {
+        case AWLAN_REASON_UNSPECIFIED: return "WLAN_INFO_1";
+        case AWLAN_REASON_PREV_AUTH_NOT_VALID: return "WLAN_INFO_2";
+        case AWLAN_REASON_DEAUTH_LEAVING: return "WLAN_INFO_3";
+        case AWLAN_REASON_STA_REQ_ASSOC_WITHOUT_AUTH: return "WLAN_INFO_9";
+        case AWLAN_REASON_MICHAEL_MIC_FAILURE: return "WLAN_INFO_14";
+        case AWLAN_REASON_4WAY_HANDSHAKE_TIMEOUT: return "WLAN_INFO_15";
+        case AWLAN_REASON_AKMP_NOT_VALID: return "WLAN_INFO_20";
+        case AWLAN_REASON_IEEE_802_1X_AUTH_FAILED: return "WLAN_INFO_23";
+        case AWLAN_REASON_INVALID_PMKID: return "WLAN_INFO_49";
+        default: return "WLAN_INFO_UNKNOWN";
+    }
+}
+
+
+int ap_status_code(int ap_index, char *src_mac, char *destmac, int type, int status)
 {
     char tmp[128];
     char buff[2048];
     wifi_util_dbg_print(WIFI_MON,"%s:%d start \n", __func__, __LINE__);
-    if (mac == NULL) {
+    if (src_mac == NULL || dest_mac == NULL) {
         wifi_util_dbg_print(WIFI_MON,"%s:%d input mac adrress is NULL for ap_index:%d status:%d\n", __func__, __LINE__, ap_index, status);
         return -1;
     }
     wlan_status_code_t status_code = (wlan_status_code_t)status;
     const char  *status_string = get_status_string(status_code);
-    //const char  *marker_name = get_marker_string(status_code);
-    const char  *marker_name = "WIFI_INFO_FrameFail";
+    const char  *marker_name = get_marker_status_string(status_code);
+    //const char  *marker_name = "WIFI_INFO_FrameFail";
     get_formatted_time(tmp);
-    snprintf(buff, 2048, "%s,%s,%s,%d,%s,%d\n", tmp, marker_name, status_string, status, mac, ap_index + 1);
+    snprintf(buff, 2048, "%s,%d,%s,%d,%s,%s,%s,%d\n", tmp, type, marker_name, status, status_string, src_mac, dest_mac, ap_index);
     write_to_file(wifi_health_log, buff);
     wifi_util_dbg_print(WIFI_MON, "%s", buff);
-    get_stubs_descriptor()->t2_event_s_fn("WIFI_INFO_FrameFail",buff);
+    get_stubs_descriptor()->t2_event_s_fn(marker_name,buff);
     wifi_util_dbg_print(WIFI_MON,"%s:%d exit \n", __func__, __LINE__);
     return 0;
 }
 
-int ap_reason_code(int ap_index, char *mac, int reason_code)
+int ap_reason_code(int ap_index, char *src_mac, char *dest_mac, int type, int reason_code)
 {
     char tmp[128];
     char buff[2048];
@@ -2627,29 +2675,31 @@ int ap_reason_code(int ap_index, char *mac, int reason_code)
     const char *marker_name;
     const char *reason_string;
     wifi_util_dbg_print(WIFI_MON,"%s:%d start \n", __func__, __LINE__);
-    if (mac == NULL) {
+    if (src_mac == NULL || dest_mac == NULL) {
         wifi_util_dbg_print(WIFI_MON,"%s:%d input mac adrress is NULL for ap_index:%d reason:%d\n", __func__, __LINE__, ap_index, reason_code);
         return -1;
     }
-    if ((reason_code >= 1 && reason_code <= 39) || (reason_code >= 45 && reason_code <= 66)) {
+    /*if ((reason_code >= 1 && reason_code <= 39) || (reason_code >= 45 && reason_code <= 66)) {
         details = reason_details[reason_code];
     }
     else {
         wifi_util_dbg_print(WIFI_MON,"%s:%d return unknown as reason code is not present \n", __func__, __LINE__);
         details = (ReasonDetails){"UNKNOWN","UNKNOWN"};
-    }
-    marker_name = "WIFI_INFO_Dissassociate_reason4";
-    reason_string = details.reason_string;
+    }*/
+    WlanReasonCode reason = (WlanReasonCode)reason_code;
+    const char  *reason_string = get_reason_string(reason);
+    const char  *marker_name = get_marker_reason_string(reason);
+    //reason_string = details.reason_string;
     get_formatted_time(tmp);
-    snprintf(buff, 2048, "%s,%s,%d,%s,%s,%d\n", tmp, marker_name, reason_code, reason_string, mac, ap_index + 1);
+    snprintf(buff, 2048, "%s,%d,%s,%d,%s,%s,%s,%d\n", tmp, type, marker_name, reason_code, reason_string, src_mac, dest_mac, ap_index);
     write_to_file(wifi_health_log, buff);
     wifi_util_dbg_print(WIFI_MON, "%s", buff);
-    get_stubs_descriptor()->t2_event_s_fn("WIFI_INFO_Dissassociate_reason4",buff);
+    get_stubs_descriptor()->t2_event_s_fn(marker_name,buff);
     wifi_util_dbg_print(WIFI_MON,"%s:%d exit \n", __func__, __LINE__);
     return 0;
 }
 
-int device_disassociated(int ap_index, char *mac, int reason)
+int device_disassociated(int ap_index, char *src_mac, char *dest_mac, int type, int reason)
 {
     wifi_monitor_data_t data;
     assoc_dev_data_t assoc_data;
@@ -2658,11 +2708,11 @@ int device_disassociated(int ap_index, char *mac, int reason)
     mac_address_t grey_list_mac;
     bool is_sta_active;
 
-    if (mac == NULL) {
+    if (src_mac == NULL || dest_mac == NULL) {
         wifi_util_dbg_print(WIFI_MON,"%s:%d input mac adrress is NULL for ap_index:%d reason:%d\n", __func__, __LINE__, ap_index, reason);
         return -1;
     }
-    if ((ap_reason_code(ap_index, mac, reason)) != 0) {
+    if ((ap_reason_code(ap_index, src_mac, dest_mac, type, reason)) != 0) {
        wifi_util_dbg_print(WIFI_MON,"%s:%d failed in getting the reason code details as mac is null \n", __func__, __LINE__);
        return -1;
     }
@@ -2827,7 +2877,7 @@ int device_max_client_rejection(int ap_index, char *mac, int reason)
     return 0;
 }
 
-int device_deauthenticated(int ap_index, char *mac, int reason)
+int device_deauthenticated(int ap_index, char *src_mac, char *dest_mac, int type, int reason)
 {
     wifi_monitor_data_t data;
     unsigned int mac_addr[MAC_ADDR_LEN];
@@ -2836,12 +2886,12 @@ int device_deauthenticated(int ap_index, char *mac, int reason)
     mac_address_t grey_list_mac;
     bool is_sta_active;
 
-    if (mac == NULL) {
+    if (src_mac == NULL || dest_mac == NULL ) {
         wifi_util_dbg_print(WIFI_MON,"%s:%d input mac adrress is NULL for ap_index:%d reason:%d\n", __func__, __LINE__, ap_index, reason);
         return -1;
     }
 
-    if ((ap_reason_code(ap_index, mac, reason)) != 0) {
+    if ((ap_reason_code(ap_index, src_mac, dest_mac, type, reason)) != 0) {
        wifi_util_dbg_print(WIFI_MON,"%s:%d failed in getting the reason code details as mac is null \n", __func__, __LINE__);
        return -1;
     }
