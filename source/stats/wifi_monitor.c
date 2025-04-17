@@ -445,6 +445,7 @@ int update_interop_sta_data(unsigned int vap_index) {
     while (sta != NULL) {
         char *sta_mac_str = to_mac_str(sta->sta_mac, mac_str);
         //telemetry_event_akm_count(sta, vapindex, sta_mac_str);
+	wifi_util_dbg_print(WIFI_MON, "%s:%d freed STA MAC:%s \n", __func__, __LINE__, sta_mac_str);
 	sta = hash_map_get_next(sta_map, sta);
 	tmpsta=hash_map_remove(sta_map,mac_str);
 	if(tmpsta!= NULL) {
