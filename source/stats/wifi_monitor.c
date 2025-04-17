@@ -438,7 +438,7 @@ int update_interop_sta_data(unsigned int vap_index) {
     sta_map = get_interop_sta_data_map(vap_index);
     int vapindex = (int)vap_index;
     if (sta_map == NULL) {
-        wifi_util_error_print(WIFI_MON, "%s:%d sta_data map not found for vap_index:%d\r\n", __func__, __LINE__, vap_index);
+        wifi_util_error_print(WIFI_MON, "%s:%d sta_data map not found for vap_index:%d\r\n", __func__, __LINE__, vapindex);
         return RETURN_ERR;
     }
     sta = hash_map_get_first(sta_map);
@@ -3644,7 +3644,7 @@ void deinit_wifi_monitor()
 {
     unsigned int i;
     sta_data_t *sta, *temp_sta;
-    telemetry_data_t *stat,*istat,*itemp_sta,*temp_stat;
+    telemetry_data_t *stat,*istat,*itemp_stat,*temp_stat;
     mac_addr_str_t mac_stri = { 0 };
     char key[64] = {0};
     hash_map_t *collector_list = NULL;
