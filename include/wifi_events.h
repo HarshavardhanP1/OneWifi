@@ -179,7 +179,6 @@ typedef enum {
     wifi_event_monitor_clientdiag_update_config,
     wifi_event_monitor_data_collection_config,
     wifi_event_monitor_provider_response,
-    wifi_event_monitor_auth_req,
     wifi_event_monitor_assoc_req,
     wifi_event_monitor_clear_sta_counters, // goodbad rssi time and rapid reconnects
     wifi_event_monitor_get_radiostats_onchan,
@@ -193,6 +192,8 @@ typedef enum {
     wifi_event_monitor_get_radio_temperature,
     wifi_event_monitor_set_subscribe,
     wifi_event_monitor_action_frame,
+    wifi_event_monitor_auth_req,
+    wifi_event_monitor_update_interop_interval,
     wifi_event_monitor_max,
 
     // Tunnel

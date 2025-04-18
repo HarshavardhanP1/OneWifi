@@ -215,6 +215,7 @@ wifi_stats_flag_change
     );
 int radio_stats_flag_change(int radio_index, bool enable);
 int vap_stats_flag_change(int ap_index, bool enable);
+static int send_monitor_event(int event, const char *event_data);
 void monitor_enable_instant_msmt(mac_address_t sta_mac, bool enable);
 bool monitor_is_instant_msmt_enabled();
 void instant_msmt_reporting_period(int pollPeriod);
