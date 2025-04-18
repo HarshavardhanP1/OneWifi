@@ -181,6 +181,7 @@ typedef struct {
     int clientdiag_sched_arg[MAX_VAP];
     unsigned int clientdiag_sched_interval[MAX_VAP];
     int csi_sched_id;
+    int interop_id;
     unsigned int csi_sched_interval;
     bool radio_presence[MAX_NUM_RADIOS];
     bool is_blaster_running;
