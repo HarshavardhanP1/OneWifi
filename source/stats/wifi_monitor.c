@@ -213,6 +213,7 @@ int get_chan_util_upload_period(void);
 static int refresh_task_period(void *arg);
 int associated_device_diagnostics_send_event(void *arg);
 static void scheduler_telemetry_tasks(void);
+static void update_interop_interval(void);
 int csi_sendPingData(void * arg);
 static int csi_update_pinger(int ap_index, mac_addr_t mac_addr, bool pause_pinger);
 static int clientdiag_sheduler_enable(int ap_index);
@@ -1682,6 +1683,9 @@ void *monitor_function  (void *data)
                     case wifi_event_monitor_stop_inst_msmt:
                         g_monitor_module.inst_msmt_id = 0;
                         scheduler_telemetry_tasks();
+                    break;
+                    case wifi_event_monitor_update_interop_interval:
+                        update_interop_interval();
                     break;
                     case wifi_event_monitor_data_collection_config:
                         coordinator_check_stats_config(&event_data->u.mon_stats_config);
@@ -3358,6 +3362,30 @@ int device_associated(int ap_index, wifi_associated_dev_t *associated_dev)
 
     return 0;
 }
+static int new_chan_util_period = 0;
+static void update_interop_interval(void)
+{
+    new_chan_util_period = get_chan_util_upload_period();
+    if (!g_monitor_module.inst_msmt_id) {
+        wifi_util_dbg_print(WIFI_MON, "%s:%d start new chan util period:%d monitor:%d \n", __func__, __LINE__,new_chan_util_period,g_monitor_module.curr_chan_util_period);
+	if((g_monitor_module.curr_chan_util_period != new_chan_util_period) && (new_chan_util_period != 0)) {
+	    if (g_monitor_module.interop_id != 0) {
+	        scheduler_update_timer_task_interval(g_monitor_module.sched, g_monitor_module.interop_id, new_chan_util_period*1000);
+	        g_monitor_module.curr_chan_util_period = new_chan_util_period;
+	    }
+	wifi_util_dbg_print(WIFI_MON, "%s:%d end new chan util period:%d monitor:%d \n", __func__, __LINE__,new_chan_util_period,g_monitor_module.curr_chan_util_period);
+	}
+    } else {
+        if (g_monitor_module.interop_id != 0) {
+            scheduler_cancel_timer_task(g_monitor_module.sched, g_monitor_module.interop_id);
+            g_monitor_module.interop_id = 0;
+	    wifi_util_dbg_print(WIFI_MON, "%s:%d interop id not 0 new chan util period:%d monitor:%d \n", __func__, __LINE__,new_chan_util_period,g_monitor_module.curr_chan_util_period);
+        }
+    wifi_util_dbg_print(WIFI_MON, "%s:%d exit new chan util period:%d monitor:%d \n", __func__, __LINE__,new_chan_util_period,g_monitor_module.curr_chan_util_period);
+    }
+}
+
+
 
 static void scheduler_telemetry_tasks(void)
 {
@@ -3528,6 +3556,7 @@ int init_wifi_monitor()
 
     g_monitor_module.csi_sched_id = 0;
     g_monitor_module.csi_sched_interval = 0;
+    g_monitor_module.interop_id = 0;
     for (i = 0; i < getTotalNumberVAPs(); i++) {
         vap_index = VAP_INDEX(mgr->hal_cap, i);
         radio = RADIO_INDEX(mgr->hal_cap, i);
@@ -3570,7 +3599,7 @@ int init_wifi_monitor()
     wifi_hal_stamode_callback_register(set_sta_client_mode);
     wifi_hal_apStatusCode_callback_register(ap_status_code);
     scheduler_add_timer_task(g_monitor_module.sched, FALSE, NULL, refresh_assoc_frame_entry, NULL, (MAX_ASSOC_FRAME_REFRESH_PERIOD * 1000), 0, FALSE);
-    scheduler_add_timer_task(g_monitor_module.sched, FALSE, NULL, reset_interop_sta_data, NULL, (MAX_INTEROP_REPORT_REFRESH_PERIOD * 1000), 0, FALSE);
+    scheduler_add_timer_task(g_monitor_module.sched, FALSE, NULL, reset_interop_sta_data, NULL, (get_chan_util_upload_period() * 1000), 0, FALSE);
     scheduler_add_timer_task(g_monitor_module.sched, FALSE, NULL, reset_wpa3_enhanced_sta_data, NULL, (MAX_AKM_REPORT_REFRESH_PERIOD * 1000), 0, FALSE);
     wifi_util_dbg_print(WIFI_MON, "%s:%d Wi-Fi monitor is initialized successfully\n", __func__, __LINE__);
 
