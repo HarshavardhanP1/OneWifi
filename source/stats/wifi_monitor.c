@@ -3372,6 +3372,7 @@ static void update_interop_interval(void)
 	    if (g_monitor_module.interop_id != 0) {
 	        scheduler_update_timer_task_interval(g_monitor_module.sched, g_monitor_module.interop_id, new_chan_util_period*1000);
 	        g_monitor_module.curr_chan_util_period = new_chan_util_period;
+		wifi_util_dbg_print(WIFI_MON, "%s:%d end new chan util period:%d monitor:%d \n", __func__, __LINE__,new_chan_util_period,g_monitor_module.curr_chan_util_period);
 	    }
 	wifi_util_dbg_print(WIFI_MON, "%s:%d end new chan util period:%d monitor:%d \n", __func__, __LINE__,new_chan_util_period,g_monitor_module.curr_chan_util_period);
 	}
@@ -3599,7 +3600,7 @@ int init_wifi_monitor()
     wifi_hal_stamode_callback_register(set_sta_client_mode);
     wifi_hal_apStatusCode_callback_register(ap_status_code);
     scheduler_add_timer_task(g_monitor_module.sched, FALSE, NULL, refresh_assoc_frame_entry, NULL, (MAX_ASSOC_FRAME_REFRESH_PERIOD * 1000), 0, FALSE);
-    scheduler_add_timer_task(g_monitor_module.sched, FALSE, NULL, reset_interop_sta_data, NULL, (get_chan_util_upload_period() * 1000), 0, FALSE);
+    scheduler_add_timer_task(g_monitor_module.sched, FALSE, &g_monitor_module.interop_id, reset_interop_sta_data, NULL, (get_chan_util_upload_period() * 1000), 0, FALSE);
     scheduler_add_timer_task(g_monitor_module.sched, FALSE, NULL, reset_wpa3_enhanced_sta_data, NULL, (MAX_AKM_REPORT_REFRESH_PERIOD * 1000), 0, FALSE);
     wifi_util_dbg_print(WIFI_MON, "%s:%d Wi-Fi monitor is initialized successfully\n", __func__, __LINE__);
 
