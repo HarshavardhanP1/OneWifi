@@ -414,6 +414,10 @@ int set_auth_req_frame_data(frame_data_t *msg) {
     }
 
     wifi_util_dbg_print(WIFI_MON, "%s:%d wifi mgmt frame message: ap_index:%d length:%d type:%d dir:%d src mac:%s rssi:%d\r\n", __func__, __LINE__, msg->frame.ap_index, msg->frame.len, msg->frame.type, msg->frame.dir, str, msg->frame.sig_dbm);
+    if (!isVapPrivate(msg->frame.ap_index) && !isVapHotspot(msg->frame.ap_index)){
+        wifi_util_dbg_print(WIFI_MON, "%s:%d It's not a private vap or hotspot vap \r\n", __func__, __LINE__);
+        return RETURN_OK;
+    }
     sta_map = get_interop_sta_data_map(msg->frame.ap_index);
     if (sta_map == NULL) {
         wifi_util_error_print(WIFI_MON, "%s:%d sta_data map not found for vap_index:%d\r\n", __func__, __LINE__, msg->frame.ap_index);
@@ -462,7 +466,9 @@ void update_interop_sta_all_vap_data_entry(void) {
     wifi_mgr_t *mgr = get_wifimgr_obj();
     for (index = 0; index < getTotalNumberVAPs(); index++) {
         vap_index = VAP_INDEX(mgr->hal_cap, index);
-        update_interop_sta_data(vap_index);
+	if (isVapPrivate(vap_index) || isVapHotspot(vap_index)) {
+            update_interop_sta_data(vap_index);
+	}
     }
 }
 
@@ -2772,15 +2778,17 @@ const char *get_marker_reason_string(WlanReasonCode reason) {
 const char *get_frame_type_string(wifi_mgmtFrameType_t frameType) {
     switch (frameType) {
         case WIFI_MGMT_FRAME_TYPE_DISASSOC:
-            return "1010";
+            return "1010 (Disassoc)";
         case WIFI_MGMT_FRAME_TYPE_DEAUTH:
-            return "1100";
+            return "1100 (Deauth)";
         case WIFI_MGMT_FRAME_TYPE_AUTH:
-            return "1011";
+            return "1011 (Auth)";
+	case WIFI_MGMT_FRAME_TYPE_AUTH_RSP:
+            return "1011 (Auth_Rsp)";
         case WIFI_MGMT_FRAME_TYPE_ASSOC_RSP:
-            return "1";
+            return "1 (Assoc)";
         case WIFI_MGMT_FRAME_TYPE_REASSOC_RSP:
-            return "11";
+            return "11 (Reassoc)";
         default:
             return "UNKNOWN";
     }
