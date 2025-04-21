@@ -377,7 +377,7 @@ telemetry_data_t *create_interop_sta_data_hash_map(hash_map_t *sta_map, mac_addr
         return NULL;
     }
     hash_map_put(sta_map, mac_str_dup, sta);
-    wifi_util_dbg_print(WIFI_MON, "Created STA entry for MAC: %s\r\n", mac_str_dup);
+    wifi_util_dbg_print(WIFI_MON, "%s:%d Created STA entry for MAC: %s\r\n", __func__, __LINE__, mac_str_dup);
     pthread_mutex_unlock(&g_monitor_module.data_lock);
     return sta;
 }
@@ -395,7 +395,7 @@ hash_map_t *get_interop_sta_data_map(unsigned int vap_index) {
     }
     getVAPArrayIndexFromVAPIndex(vap_index, &vap_array_index);
     pthread_mutex_unlock(&g_monitor_module.data_lock);
-    wifi_util_dbg_print(WIFI_MON, "Retrieved STA data map for VAP index: %d vap name:%s \r\n", vap_index, vap_name);
+    wifi_util_dbg_print(WIFI_MON, "%s:%d Retrieved STA data map for VAP index: %d vap name:%s \r\n", __func__, __LINE__,vap_index, vap_name);
     return g_monitor_module.bssid_data[vap_array_index].interop_sta_map;
 }
 
@@ -431,7 +431,7 @@ int set_auth_req_frame_data(frame_data_t *msg) {
             return RETURN_ERR;
         }
     }
-    wifi_util_dbg_print(WIFI_MON, "%s:%d STA MAC:%s \n", __func__, __LINE__, str);
+    wifi_util_dbg_print(WIFI_MON, "%s:%d STA MAC:%s count:%d \n", __func__, __LINE__, str,hash_map_count(sta_map));
     return RETURN_OK;
 }
 
@@ -2816,7 +2816,7 @@ int ap_status_code(int ap_index, char *src_mac, char *dest_mac, int type, int st
     get_formatted_time(tmp);
     snprintf(buff, 2048, "%s,%s,%d,%s,%s,%s,%d,%s\n", tmp, marker_name, ap_index+1, frame_string, src_mac, dest_mac, status, status_string);
     write_to_file(wifi_health_log, buff);
-    wifi_util_dbg_print(WIFI_MON, "%s", buff);
+    wifi_util_dbg_print(WIFI_MON, "%s:%d %s", __func__, __LINE__,buff);
     get_stubs_descriptor()->t2_event_s_fn((char *)marker_name,buff);
     wifi_util_dbg_print(WIFI_MON,"%s:%d exit \n", __func__, __LINE__);
     return 0;
@@ -2854,7 +2854,7 @@ int ap_reason_code(int ap_index, char *src_mac, char *dest_mac, int type, int re
     get_formatted_time(tmp);
     snprintf(buff, 2048, "%s,%s,%d,%s,%s,%s,%d,%s\n", tmp, marker_name, ap_index+1, frame_string, src_mac, dest_mac, reason_code, reason_string);
     write_to_file(wifi_health_log, buff);
-    wifi_util_dbg_print(WIFI_MON, "%s", buff);
+    wifi_util_dbg_print(WIFI_MON, "%s:%d %s", __func__, __LINE__, buff);
     get_stubs_descriptor()->t2_event_s_fn((char *)marker_name,buff);
     wifi_util_dbg_print(WIFI_MON,"%s:%d exit \n", __func__, __LINE__);
     return 0;
