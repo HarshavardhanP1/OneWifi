@@ -437,7 +437,12 @@ int set_auth_req_frame_data(frame_data_t *msg) {
 
 void print_all_messages(message_data_t *msg_data) {
     for (int i = 0; i < msg_data->msg_count; i++) {
-        wifi_util_dbg_print(WIFI_MON, "print_all_messages Harsha Message: %s, Count: %d, First Set Time: %ld\n", msg_data->messages[i], msg_data->repeated_counts[i], msg_data->first_set_times[i]);
+        wifi_util_dbg_print(WIFI_MON, "print_all_messages Harsha Message: %s,Count:%d,First Set Time: %ld\n", msg_data->messages[i], msg_data->repeated_counts[i], msg_data->first_set_times[i]);
+        char buff[2048];
+        char tmp[128];
+        get_formatted_time(tmp);
+	snprintf(buff, 2048, "%s:%s:%d\n", tmp,msg_data->messages[i],msg_data->repeated_counts[i]);
+	write_to_file(wifi_health_log,buff);
 	get_stubs_descriptor()->t2_event_d_fn(msg_data->messages[i],msg_data->repeated_counts[i]);
     }
 }
@@ -2878,14 +2883,14 @@ int rate_limit_log(telemetry_data_t *data, const char *message) {
     msg_data->first_set_times[msg_data->msg_count] = current_time;
     msg_data->msg_count++;
 	
-    write_to_file(wifi_health_log, (char *)message);
+    //write_to_file(wifi_health_log, (char *)message);
     wifi_util_info_print(WIFI_MON, "%s:%d Added new message '%s' at index %d\n",__func__, __LINE__,message, msg_data->msg_count - 1);
     return 0;
 }
 
 int ap_status_code(int ap_index, char *src_mac, char *dest_mac, int type, int status)
 {
-    char tmp[128];
+    //char tmp[128];
     char buff[2048];
     wifi_util_dbg_print(WIFI_MON,"%s:%d start \n", __func__, __LINE__);
     if (src_mac == NULL || dest_mac == NULL) {
@@ -2916,11 +2921,12 @@ int ap_status_code(int ap_index, char *src_mac, char *dest_mac, int type, int st
         wifi_util_dbg_print(WIFI_MON,"%s:%d status:%s marker:%s frame:%s \n", __func__, __LINE__,status_string,marker_name,frame_string);
         return 0;
     }
-    get_formatted_time(tmp);
-    snprintf(buff, 2048, "%s,%s,%d,%s,%s,%s,%d,%s\n", tmp, marker_name, ap_index+1, frame_string, src_mac, dest_mac, status, status_string);
+    //get_formatted_time(tmp);
+    snprintf(buff, 2048, "%s,%d,%s,%s,%s,%d,%s\n", marker_name, ap_index+1, frame_string, src_mac, dest_mac, status, status_string);
     if (rate_limit_log(sta, buff) == 0) {
-           write_to_file(wifi_health_log, buff);
+           //write_to_file(wifi_health_log, buff);
            //get_stubs_descriptor()->t2_event_s_fn((char *)marker_name,buff);
+	   wifi_util_dbg_print(WIFI_MON, " hey %s:%d %s", __func__, __LINE__,buff);
     }
     wifi_util_dbg_print(WIFI_MON, "%s:%d %s", __func__, __LINE__,buff);
     //get_stubs_descriptor()->t2_event_s_fn((char *)marker_name,buff);
@@ -2930,7 +2936,7 @@ int ap_status_code(int ap_index, char *src_mac, char *dest_mac, int type, int st
 
 int ap_reason_code(int ap_index, char *src_mac, char *dest_mac, int type, int reason_code)
 {
-    char tmp[128];
+    //char tmp[128];
     char buff[2048];
     //ReasonDetails details;
     //const char *marker_name;
@@ -2972,11 +2978,12 @@ int ap_reason_code(int ap_index, char *src_mac, char *dest_mac, int type, int re
         wifi_util_dbg_print(WIFI_MON,"%s:%d reason:%s marker:%s frame:%s \n", __func__, __LINE__,reason_string,marker_name,frame_string);
         return 0;
     }
-    get_formatted_time(tmp);
-    snprintf(buff, 2048, "%s,%s,%d,%s,%s,%s,%d,%s\n", tmp, marker_name, ap_index+1, frame_string, src_mac, dest_mac, reason_code, reason_string);
+    //get_formatted_time(tmp);
+    snprintf(buff, 2048, "%s,%d,%s,%s,%s,%d,%s\n",marker_name, ap_index+1, frame_string, src_mac, dest_mac, reason_code, reason_string);
     if (rate_limit_log(sta, buff) == 0) {
-           write_to_file(wifi_health_log, buff);
+           //write_to_file(wifi_health_log, buff);
            //get_stubs_descriptor()->t2_event_s_fn((char *)marker_name,buff);
+	   wifi_util_dbg_print(WIFI_MON, " hey %s:%d %s", __func__, __LINE__,buff);
     }
     wifi_util_dbg_print(WIFI_MON, "%s:%d %s", __func__, __LINE__, buff);
     //get_stubs_descriptor()->t2_event_s_fn((char *)marker_name,buff);
