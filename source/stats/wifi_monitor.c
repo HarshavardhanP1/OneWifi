@@ -437,11 +437,12 @@ int set_auth_req_frame_data(frame_data_t *msg) {
 
 void print_all_messages(message_data_t *msg_data) {
     for (int i = 0; i < msg_data->msg_count; i++) {
-        wifi_util_dbg_print(WIFI_MON, "print_all_messages Harsha Message: %s,Count:%d,First Set Time: %ld\n", msg_data->messages[i], msg_data->repeated_counts[i], msg_data->first_set_times[i]);
+        wifi_util_dbg_print(WIFI_MON, "print_all_messages Harsha Message:%s", msg_data->messages[i]);
+	wifi_util_dbg_print(WIFI_MON, " Count:%d,First Set Time: %ld\n",msg_data->repeated_counts[i], msg_data->first_set_times[i]);
         char buff[2048];
         char tmp[128];
         get_formatted_time(tmp);
-	snprintf(buff, 2048, "%s:%s:%d\n", tmp,msg_data->messages[i],msg_data->repeated_counts[i]);
+	snprintf(buff, 2048, "%s:%s:%d:%ld\n", tmp,msg_data->messages[i],msg_data->repeated_counts[i],msg_data->first_set_times[i]);
 	write_to_file(wifi_health_log,buff);
 	get_stubs_descriptor()->t2_event_d_fn(msg_data->messages[i],msg_data->repeated_counts[i]);
     }
@@ -2897,7 +2898,7 @@ int ap_status_code(int ap_index, char *src_mac, char *dest_mac, int type, int st
         wifi_util_dbg_print(WIFI_MON,"%s:%d input mac adrress is NULL for ap_index:%d status:%d\n", __func__, __LINE__, ap_index, status);
         return -1;
     }
-    wifi_util_dbg_print(WIFI_MON, "%s:%d details of vap_index:%d src_mac :%s dest_mac :%s \r\n", __func__, __LINE__, ap_index, src_mac, dest_mac);
+    wifi_util_dbg_print(WIFI_MON, "%s:%d details of vap_index:%d src_mac :%s dest_mac :%s status:%d type:%d \r\n", __func__, __LINE__, ap_index, src_mac, dest_mac,status,type);
     hash_map_t *sta_map;
     telemetry_data_t *sta;
     sta_map = get_interop_sta_data_map(ap_index);
@@ -2953,7 +2954,7 @@ int ap_reason_code(int ap_index, char *src_mac, char *dest_mac, int type, int re
         wifi_util_dbg_print(WIFI_MON,"%s:%d return unknown as reason code is not present \n", __func__, __LINE__);
         details = (ReasonDetails){"UNKNOWN","UNKNOWN"};
     }*/
-    wifi_util_dbg_print(WIFI_MON, "%s:%d details of vap_index:%d src_mac :%s dest_mac :%s \r\n", __func__, __LINE__, ap_index, src_mac, dest_mac);
+    wifi_util_dbg_print(WIFI_MON, "%s:%d details of vap_index:%d src_mac :%s dest_mac :%s reason:%d type:%d \r\n", __func__, __LINE__, ap_index, src_mac, dest_mac, reason_code, type);
     hash_map_t *sta_map;
     telemetry_data_t *sta;
     sta_map = get_interop_sta_data_map(ap_index);
