@@ -438,6 +438,7 @@ int set_auth_req_frame_data(frame_data_t *msg) {
 void print_all_messages(message_data_t *msg_data) {
     for (int i = 0; i < msg_data->msg_count; i++) {
         wifi_util_dbg_print(WIFI_MON, "print_all_messages Harsha Message: %s, Count: %d, First Set Time: %ld\n", msg_data->messages[i], msg_data->repeated_counts[i], msg_data->first_set_times[i]);
+	get_stubs_descriptor()->t2_event_d_fn(msg_data->messages[i],msg_data->repeated_counts[i]);
     }
 }
 void clear_all_messages(message_data_t *msg_data) {
@@ -461,6 +462,7 @@ int update_interop_sta_data(unsigned int vap_index) {
     mac_addr_str_t mac_str = { 0 };
     sta_map = get_interop_sta_data_map(vap_index);
     int vapindex = (int)vap_index;
+    wifi_util_dbg_print(WIFI_MON, "%s:%d start details for vap_index:%d\r\n", __func__, __LINE__, vapindex);
     if (sta_map == NULL) {
         wifi_util_error_print(WIFI_MON, "%s:%d sta_data map not found for vap_index:%d\r\n", __func__, __LINE__, vapindex);
         return RETURN_ERR;
@@ -477,6 +479,7 @@ int update_interop_sta_data(unsigned int vap_index) {
 	    free(tmpsta);
 	}
     }
+    wifi_util_dbg_print(WIFI_MON, "%s:%d stop details for vap_index:%d\r\n", __func__, __LINE__, vapindex);
     return RETURN_OK;
 }
 
@@ -2577,7 +2580,7 @@ bool active_sta_connection_status(int ap_index, char *mac)
 }
 
 
-/*int count_stat() { // need modifications later it's just a skeleton
+/*int count_stat(hash_map_t *map) { // need modifications later it's just a skeleton
     int indexes[] = {1, 2, 21, 5, 6, 9, 10};
     int size = sizeof(indexes) / sizeof(indexes[0]);
     int sum = 0;
@@ -2591,7 +2594,7 @@ bool active_sta_connection_status(int ap_index, char *mac)
      __LINE__, sum);
 
     return 0;
-}
+}*/
 
 /*ReasonDetails reason_details[] = {
     [AWLAN_REASON_UNSPECIFIED]                = {"WLAN_REASON_UNSPECIFIED", "WLAN_REASON_UNSPECIFIED"},
@@ -2874,7 +2877,8 @@ int rate_limit_log(telemetry_data_t *data, const char *message) {
     msg_data->repeated_counts[msg_data->msg_count] = 1;
     msg_data->first_set_times[msg_data->msg_count] = current_time;
     msg_data->msg_count++;
-    write_to_file(wifi_health_log, message);
+	
+    write_to_file(wifi_health_log, (char *)message);
     wifi_util_info_print(WIFI_MON, "%s:%d Added new message '%s' at index %d\n",__func__, __LINE__,message, msg_data->msg_count - 1);
     return 0;
 }
