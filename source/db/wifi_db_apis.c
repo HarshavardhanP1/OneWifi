@@ -6873,7 +6873,7 @@ int wifidb_init_global_config_default(wifi_global_param_t *config)
     cfg.force_disable_radio_status = false;
     cfg.fixed_wmm_params = 3;
     cfg.num_stats = 0;
-    cfg.marker_enable = fasle;
+    cfg.marker_enable = false;
     memset(temp, 0, sizeof(temp));
     if (wifi_hal_get_default_country_code(temp) < 0) {
         wifi_util_dbg_print(WIFI_DB,"%s:%d: unable to get default country code setting a USI\n", __func__, __LINE__);
