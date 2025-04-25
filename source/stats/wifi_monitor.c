@@ -2923,7 +2923,7 @@ int ap_status_code(int ap_index, char *src_mac, char *dest_mac, int type, int st
         return 0;
     }
     //get_formatted_time(tmp);
-    snprintf(buff, 2048, "%s,%d,%s,%s,%s,%d,%s\n", marker_name, ap_index+1, frame_string, src_mac, dest_mac, status, status_string);
+    snprintf(buff, 2048, "%s,%d,%s,%s,%s,%d,%s", marker_name, ap_index+1, frame_string, src_mac, dest_mac, status, status_string);
     if (rate_limit_log(sta, buff) == 0) {
            //write_to_file(wifi_health_log, buff);
            //get_stubs_descriptor()->t2_event_s_fn((char *)marker_name,buff);
@@ -2980,7 +2980,7 @@ int ap_reason_code(int ap_index, char *src_mac, char *dest_mac, int type, int re
         return 0;
     }
     //get_formatted_time(tmp);
-    snprintf(buff, 2048, "%s,%d,%s,%s,%s,%d,%s\n",marker_name, ap_index+1, frame_string, src_mac, dest_mac, reason_code, reason_string);
+    snprintf(buff, 2048, "%s,%d,%s,%s,%s,%d,%s",marker_name, ap_index+1, frame_string, src_mac, dest_mac, reason_code, reason_string);
     if (rate_limit_log(sta, buff) == 0) {
            //write_to_file(wifi_health_log, buff);
            //get_stubs_descriptor()->t2_event_s_fn((char *)marker_name,buff);

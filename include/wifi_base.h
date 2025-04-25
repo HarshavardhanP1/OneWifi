@@ -487,6 +487,8 @@ typedef struct {
     char cli_stat_list[MAX_BUF_LENGTH];
     char snr_list[MAX_BUF_LENGTH];
     char txrx_rate_list[MAX_BUF_LENGTH];
+    int  num_stats;
+    bool marker_enable;
 } __attribute__((packed)) wifi_global_param_t;
 
 typedef struct {
