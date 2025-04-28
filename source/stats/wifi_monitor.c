@@ -3824,6 +3824,7 @@ void deinit_wifi_monitor()
     telemetry_data_t *stat,*istat,*itemp_stat,*temp_stat;
     mac_addr_str_t mac_stri = { 0 };
     char key[64] = {0};
+    wifi_mgr_t *mgr = get_wifimgr_obj();
     hash_map_t *collector_list = NULL;
 #ifdef MQTTCM
     if (mqttcm_enabled) {
