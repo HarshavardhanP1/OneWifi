@@ -3070,6 +3070,7 @@ int wifidb_get_wifi_global_config(wifi_global_param_t *config)
         }
         config->num_stats = pcfg->num_stats;
         config->marker_enable = pcfg->marker_enable;
+        wifi_util_dbg_print(WIFI_DB,"%s:%d:global Config cnum_stats=%d,pnum_stats:%d cmarker_enable:%d pmarker_enable:%d \n",__func__, __LINE__,config->num_stats,pcfg->num_stats,config->marker_enable,pcfg->marker_enable);
         wifi_util_dbg_print(WIFI_DB,"%s:%d  notify_wifi_changes %d  prefer_private %d  prefer_private_configure %d  factory_reset %d  tx_overflow_selfheal %d  inst_wifi_client_enabled %d  inst_wifi_client_reporting_period %d  inst_wifi_client_mac = %s inst_wifi_client_def_reporting_period %d  wifi_active_msmt_enabled %d  wifi_active_msmt_pktsize %d  wifi_active_msmt_num_samples %d  wifi_active_msmt_sample_duration %d  vlan_cfg_version %d  wps_pin = %s bandsteering_enable %d  good_rssi_threshold %d  assoc_count_threshold %d  assoc_gate_time %d  assoc_monitor_duration %d  rapid_reconnect_enable %d  vap_stats_feature %d  mfp_config_feature %d  force_disable_radio_feature %d  force_disable_radio_status %d  fixed_wmm_params %d  wifi_region_code %s diagnostic_enable %d  validate_ssid %d device_network_mode:%d normalized_rssi_list %s snr list %s txrx_rate_list %s cli_stat_list %s\r\n", __func__, __LINE__, config->notify_wifi_changes,config->prefer_private,config->prefer_private_configure,config->factory_reset,config->tx_overflow_selfheal,config->inst_wifi_client_enabled,config->inst_wifi_client_reporting_period,config->inst_wifi_client_mac, config->inst_wifi_client_def_reporting_period,config->wifi_active_msmt_enabled,config->wifi_active_msmt_pktsize,config->wifi_active_msmt_num_samples,config->wifi_active_msmt_sample_duration,config->vlan_cfg_version,config->wps_pin, config->bandsteering_enable,config->good_rssi_threshold,config->assoc_count_threshold,config->assoc_gate_time,config->assoc_monitor_duration,config->rapid_reconnect_enable,config->vap_stats_feature,config->mfp_config_feature,config->force_disable_radio_feature,config->force_disable_radio_status,config->fixed_wmm_params,config->wifi_region_code,config->diagnostic_enable,config->validate_ssid, config->device_network_mode,config->normalized_rssi_list, config->snr_list, config->txrx_rate_list, config->cli_stat_list);
 
     }
@@ -4297,13 +4298,14 @@ static void wifidb_global_config_upgrade()
             wifi_util_error_print(WIFI_DB,":%s:%d str value for whix_chutility_loginterval is null \r\n", __func__, __LINE__);
         }
     }
-
+    wifi_util_dbg_print(WIFI_DB,"%s:%d hey num_stats is %d and marker enable is %d \n", __func__, __LINE__, g_wifidb->global_config.global_parameters.num_stats, g_wifidb->global_config.global_parameters.marker_enable);
     if (g_wifidb->db_version < ONEWIFI_DB_VERSION_STATS_FLAG) {
         wifi_util_dbg_print(WIFI_DB, "%s:%d upgrade global config, old db version %d \n", __func__, __LINE__, g_wifidb->db_version);
         g_wifidb->global_config.global_parameters.num_stats = 0;
         g_wifidb->global_config.global_parameters.marker_enable = false;
         wifi_util_dbg_print(WIFI_DB,"%s:%d num_stats is %d and marker enable is %d \n", __func__, __LINE__, g_wifidb->global_config.global_parameters.num_stats, g_wifidb->global_config.global_parameters.marker_enable);
     }
+
 }
 
 /************************************************************************************
