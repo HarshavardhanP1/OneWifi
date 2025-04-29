@@ -437,6 +437,30 @@ int set_auth_req_frame_data(frame_data_t *msg) {
     return RETURN_OK;
 }
 
+
+void extract_first_param(const char *message, char *first_param, char *rest_params) {
+    char message_copy[256];
+    strncpy(message_copy, message, sizeof(message_copy));
+    message_copy[sizeof(message_copy) - 1] = '\0';   
+    char *token = strtok(message_copy, ",");
+    if (token != NULL) {
+        strncpy(first_param, token, 256);
+        first_param[255] = '\0';
+        char *rest = strtok(NULL, "");
+        if (rest != NULL) {
+            strncpy(rest_params, rest, 256);
+            rest_params[255] = '\0'; 
+        } else {
+            rest_params[0] = '\0';
+        }
+    } else {
+        first_param[0] = '\0';
+        rest_params[0] = '\0';
+    }
+}
+
+
+
 void print_all_messages(message_data_t *msg_data) {
     for (int i = 0; i < msg_data->msg_count; i++) {
         wifi_util_dbg_print(WIFI_MON, "print_all_messages Harsha Message:%s", msg_data->messages[i]);
@@ -446,7 +470,12 @@ void print_all_messages(message_data_t *msg_data) {
         get_formatted_time(tmp);
 	snprintf(buff, 2048, "%s:%s:%d:%ld\n", tmp,msg_data->messages[i],msg_data->repeated_counts[i],msg_data->first_set_times[i]);
 	write_to_file(wifi_health_log,buff);
-	get_stubs_descriptor()->t2_event_d_fn(msg_data->messages[i],msg_data->repeated_counts[i]);
+        char first_param[256];
+        char rest_params[256];
+        extract_first_param(msg_data->messages[i], first_param, rest_params);
+        char second_param[512];
+        snprintf(second_param, sizeof(second_param), "%s,%d,%ld", rest_params, msg_data->repeated_counts[i], msg_data->first_set_times[i]);
+        get_stubs_descriptor()->t2_event_s_fn(first_param, second_param);
     }
 }
 void clear_all_messages(message_data_t *msg_data) {
