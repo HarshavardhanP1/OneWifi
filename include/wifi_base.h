@@ -826,7 +826,7 @@ typedef struct {
 typedef struct {
     char **messages; // Dynamically allocated array of messages
     int *repeated_counts; // Array to keep track of repeated counts for each message
-    time_t *first_set_times; // Array to keep track of the first set time for each message
+    //time_t *first_set_times; // Array to keep track of the first set time for each message
     int msg_count;
     int msg_capacity;
 } message_data_t;
