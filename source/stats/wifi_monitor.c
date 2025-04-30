@@ -463,18 +463,18 @@ void extract_first_param(const char *message, char *first_param, char *rest_para
 
 void print_all_messages(message_data_t *msg_data) {
     for (int i = 0; i < msg_data->msg_count; i++) {
-        wifi_util_dbg_print(WIFI_MON, "print_all_messages Harsha Message:%s", msg_data->messages[i]);
-	wifi_util_dbg_print(WIFI_MON, " Count:%d,First Set Time: %ld\n",msg_data->repeated_counts[i], msg_data->first_set_times[i]);
+        wifi_util_dbg_print(WIFI_MON, "print_all_messages Harsha Message:%s count:%d\n", msg_data->messages[i],msg_data->repeated_counts[i]);
+	//wifi_util_dbg_print(WIFI_MON, " Count:%d \n",msg_data->repeated_counts[i]);
         char buff[2048];
         char tmp[128];
         get_formatted_time(tmp);
-	snprintf(buff, 2048, "%s:%s:%d:%ld\n", tmp,msg_data->messages[i],msg_data->repeated_counts[i],msg_data->first_set_times[i]);
+	snprintf(buff, 2048, "%s:%s:%d\n", tmp,msg_data->messages[i],msg_data->repeated_counts[i]);
 	write_to_file(wifi_health_log,buff);
         char first_param[256];
         char rest_params[256];
         extract_first_param(msg_data->messages[i], first_param, rest_params);
         char second_param[512];
-        snprintf(second_param, sizeof(second_param), "%s,%d,%ld", rest_params, msg_data->repeated_counts[i], msg_data->first_set_times[i]);
+        snprintf(second_param, sizeof(second_param), "%s,%d", rest_params, msg_data->repeated_counts[i]);
         get_stubs_descriptor()->t2_event_s_fn(first_param, second_param);
     }
 }
@@ -484,10 +484,10 @@ void clear_all_messages(message_data_t *msg_data) {
     }
     free(msg_data->messages); // Free the messages array
     free(msg_data->repeated_counts); // Free the repeated counts array
-    free(msg_data->first_set_times); // Free the first set times array
+    //free(msg_data->first_set_times); // Free the first set times array
     msg_data->messages = NULL;
     msg_data->repeated_counts = NULL;
-    msg_data->first_set_times = NULL;
+    //msg_data->first_set_times = NULL;
     msg_data->msg_count = 0;
     msg_data->msg_capacity = 0;
 }
@@ -2881,13 +2881,13 @@ int find_message_index(message_data_t *msg_data, const char *message) {
 }
 
 int rate_limit_log(telemetry_data_t *data, const char *message) {
-    time_t current_time = time(NULL);
+    //time_t current_time = time(NULL);
     message_data_t *msg_data = &data->message_data;
     int index = find_message_index(msg_data, message);
 
     if (index != -1) {
         msg_data->repeated_counts[index]++;
-        wifi_util_info_print(WIFI_MON, "%s:%d Message '%s' found at index %d, repeated count: %d time: %ld \n",__func__, __LINE__, message, index, msg_data->repeated_counts[index],msg_data->first_set_times[index]);
+        wifi_util_info_print(WIFI_MON, "%s:%d Message '%s' found at index %d, repeated count: %d \n",__func__, __LINE__, message, index, msg_data->repeated_counts[index]);
         return 0;
     }
 
@@ -2896,8 +2896,8 @@ int rate_limit_log(telemetry_data_t *data, const char *message) {
         msg_data->msg_capacity = msg_data->msg_capacity == 0 ? 1 : msg_data->msg_capacity + 5;
         msg_data->messages = realloc(msg_data->messages, msg_data->msg_capacity * sizeof(char *));
         msg_data->repeated_counts = realloc(msg_data->repeated_counts, msg_data->msg_capacity * sizeof(int));
-        msg_data->first_set_times = realloc(msg_data->first_set_times, msg_data->msg_capacity * sizeof(time_t));
-        if (msg_data->messages == NULL || msg_data->repeated_counts == NULL || msg_data->first_set_times == NULL) {
+        //msg_data->first_set_times = realloc(msg_data->first_set_times, msg_data->msg_capacity * sizeof(time_t));
+        if (msg_data->messages == NULL || msg_data->repeated_counts == NULL) {
             wifi_util_info_print(WIFI_MON, " %s:%d Failed to realloc memory",__func__, __LINE__);
             return -1;
         }
@@ -2912,7 +2912,7 @@ int rate_limit_log(telemetry_data_t *data, const char *message) {
     }
     strcpy(msg_data->messages[msg_data->msg_count], message);
     msg_data->repeated_counts[msg_data->msg_count] = 1;
-    msg_data->first_set_times[msg_data->msg_count] = current_time;
+    //msg_data->first_set_times[msg_data->msg_count] = current_time;
     msg_data->msg_count++;
 	
     //write_to_file(wifi_health_log, (char *)message);
@@ -2958,11 +2958,11 @@ int ap_status_code(int ap_index, char *src_mac, char *dest_mac, int type, int st
     if (rate_limit_log(sta, buff) == 0) {
            //write_to_file(wifi_health_log, buff);
            //get_stubs_descriptor()->t2_event_s_fn((char *)marker_name,buff);
-	   wifi_util_dbg_print(WIFI_MON, " hey %s:%d %s", __func__, __LINE__,buff);
+	   wifi_util_dbg_print(WIFI_MON, " hey %s:%d %s\n", __func__, __LINE__,buff);
     }
-    wifi_util_dbg_print(WIFI_MON, "%s:%d %s", __func__, __LINE__,buff);
+    wifi_util_dbg_print(WIFI_MON, " exit %s:%d %s\n", __func__, __LINE__,buff);
     //get_stubs_descriptor()->t2_event_s_fn((char *)marker_name,buff);
-    wifi_util_dbg_print(WIFI_MON,"%s:%d exit \n", __func__, __LINE__);
+    //wifi_util_dbg_print(WIFI_MON,"%s:%d exit \n", __func__, __LINE__);
     return 0;
 }
 
@@ -3015,11 +3015,11 @@ int ap_reason_code(int ap_index, char *src_mac, char *dest_mac, int type, int re
     if (rate_limit_log(sta, buff) == 0) {
            //write_to_file(wifi_health_log, buff);
            //get_stubs_descriptor()->t2_event_s_fn((char *)marker_name,buff);
-	   wifi_util_dbg_print(WIFI_MON, " hey %s:%d %s", __func__, __LINE__,buff);
+	   wifi_util_dbg_print(WIFI_MON, " hey %s:%d %s\n", __func__, __LINE__,buff);
     }
-    wifi_util_dbg_print(WIFI_MON, "%s:%d %s", __func__, __LINE__, buff);
+    wifi_util_dbg_print(WIFI_MON, "exit %s:%d %s\n", __func__, __LINE__, buff);
     //get_stubs_descriptor()->t2_event_s_fn((char *)marker_name,buff);
-    wifi_util_dbg_print(WIFI_MON,"%s:%d exit \n", __func__, __LINE__);
+    //wifi_util_dbg_print(WIFI_MON,"%s:%d exit \n", __func__, __LINE__);
     return 0;
 }
 
@@ -3696,9 +3696,11 @@ int init_wifi_monitor()
 
     for (i = 0; i < getTotalNumberVAPs(); i++) {
         UINT vap_index = VAP_INDEX(mgr->hal_cap, i);
+        wifi_util_dbg_print(WIFI_MON, "%s: before vapIndex:%d \n", __FUNCTION__, vap_index);
         if (!(isVapPrivate(vap_index) || isVapHotspot(vap_index))) {
             continue;
         }
+        wifi_util_dbg_print(WIFI_MON, "%s: after vapIndex:%d \n", __FUNCTION__, vap_index);
         g_monitor_module.bssid_data[i].interop_sta_map = hash_map_create();
         if (g_monitor_module.bssid_data[i].interop_sta_map == NULL) {
             deinit_wifi_monitor();
