@@ -4466,6 +4466,7 @@ static void wifidb_vap_config_upgrade(wifi_vap_info_map_t *config, rdk_wifi_vap_
                 &rdk_config[i]);
 #endif // defined(_XB7_PRODUCT_REQ_) || defined(_XB8_PRODUCT_REQ_) || defined(_XB10_PRODUCT_REQ_) ||
        // defined(_SCER11BEL_PRODUCT_REQ_) || defined(_CBR2_PRODUCT_REQ_)
+	}
         if (g_wifidb->db_version < ONEWIFI_DB_VERSION_STATS_FLAG) {
             config->vap_array[i].u.bss_info.interop_ctrl = false;
             config->vap_array[i].u.bss_info.inum_sta = 0;
