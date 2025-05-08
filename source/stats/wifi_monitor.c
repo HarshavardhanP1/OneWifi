@@ -440,7 +440,7 @@ int set_auth_req_frame_data(frame_data_t *msg) {
     if (vap_bss_info != NULL) {
         ipstat = vap_bss_info->inum_sta;
 	ipenable = vap_bss_info->interop_ctrl;
-        wifi_util_dbg_print(WIFI_MON, "%s:%d Ipstat:%d ipenable:%d  \r\n", __func__, __LINE__,vap_bss_info->inum_sta,vap_bss_info->interop_ctrl);
+        wifi_util_dbg_print(WIFI_MON, "%s:%d Ipstat:%d ipenable:%d ipstat:%d,ipenable:%d \r\n", __func__, __LINE__,vap_bss_info->inum_sta,vap_bss_info->interop_ctrl,ipstat,ipenable);
     }
     if (vap_bss_info == NULL) {
 	  wifi_util_dbg_print(WIFI_MON, "%s:%d vap_bss_info is null \r\n", __func__, __LINE__);
