@@ -423,6 +423,8 @@ int set_auth_req_frame_data(frame_data_t *msg) {
     struct ieee80211_mgmt *frame;
     mac_addr_str_t mac_str = { 0 };
     char *str;
+    int ipstat;
+    bool ipenable;
     wifi_util_dbg_print(WIFI_MON, "%s:%d start \n", __func__, __LINE__);
     frame = (struct ieee80211_mgmt *)msg->data;
     str = to_mac_str(frame->sa, mac_str);
@@ -434,6 +436,15 @@ int set_auth_req_frame_data(frame_data_t *msg) {
     global_param = get_wifidb_wifi_global_param();
     wifi_util_dbg_print(WIFI_MON, "%s: num_stats:%d marker enable:%d \n", __FUNCTION__,global_param->num_stats,global_param->marker_enable);
     wifi_util_dbg_print(WIFI_MON, "%s:%d wifi mgmt frame message: ap_index:%d length:%d type:%d dir:%d src mac:%s rssi:%d\r\n", __func__, __LINE__, msg->frame.ap_index, msg->frame.len, msg->frame.type, msg->frame.dir, str, msg->frame.sig_dbm);
+    wifi_front_haul_bss_t *vap_bss_info = Get_wifi_object_bss_parameter(msg->frame.ap_index);
+    if (vap_bss_info != NULL) {
+        ipstat = vap_bss_info.inum_sta;
+	ipenable = vap_bss_info.interop_ctrl;
+        wifi_util_dbg_print(WIFI_MON, "%s:%d Ipstat:%d ipenable:%d  \r\n", __func__, __LINE__,vap_bss_info.inum_sta,vap_bss_info.interop_ctrl);
+    }
+    if (vap_bss_info == NULL) {
+	  wifi_util_dbg_print(WIFI_MON, "%s:%d vap_bss_info is null \r\n", __func__, __LINE__);
+    }
     if (!isVapPrivate(msg->frame.ap_index) && !isVapHotspot(msg->frame.ap_index)){
         wifi_util_dbg_print(WIFI_MON, "%s:%d It's not a private vap or hotspot vap \r\n", __func__, __LINE__);
         return RETURN_OK;
@@ -587,10 +598,11 @@ int update_interop_sta_data(unsigned int vap_index) {
         wifi_util_error_print(WIFI_MON, "%s:%d sta_data map not found for vap_index:%d\r\n", __func__, __LINE__, vapindex);
         return RETURN_ERR;
     }
-    wifi_util_dbg_print(WIFI_MON, "%s:%d started \n", __func__, __LINE__);
+    wifi_util_dbg_print(WIFI_MON, "%s:%d started hashmap count :%d  \n", __func__, __LINE__,hash_map_count(sta_map));
     sta = hash_map_get_first(sta_map);
+    wifi_util_dbg_print(WIFI_MON, "%s:%d started hashmap count :%d  \n", __func__, __LINE__,hash_map_count(sta_map));
     while (sta != NULL) {
-        wifi_util_dbg_print(WIFI_MON, "%s:%d start0 \n", __func__, __LINE__);
+        wifi_util_dbg_print(WIFI_MON, "%s:%d started0 hashmap count :%d  \n", __func__, __LINE__,hash_map_count(sta_map));
         char *sta_mac_str = to_mac_str(sta->sta_mac, mac_str);
         wifi_util_dbg_print(WIFI_MON, "%s:%d start1 \n", __func__, __LINE__);
         print_all_messages(&sta->message_data);
