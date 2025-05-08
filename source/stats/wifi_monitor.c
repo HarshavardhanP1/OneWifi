@@ -438,9 +438,9 @@ int set_auth_req_frame_data(frame_data_t *msg) {
     wifi_util_dbg_print(WIFI_MON, "%s:%d wifi mgmt frame message: ap_index:%d length:%d type:%d dir:%d src mac:%s rssi:%d\r\n", __func__, __LINE__, msg->frame.ap_index, msg->frame.len, msg->frame.type, msg->frame.dir, str, msg->frame.sig_dbm);
     wifi_front_haul_bss_t *vap_bss_info = Get_wifi_object_bss_parameter(msg->frame.ap_index);
     if (vap_bss_info != NULL) {
-        ipstat = vap_bss_info.inum_sta;
-	ipenable = vap_bss_info.interop_ctrl;
-        wifi_util_dbg_print(WIFI_MON, "%s:%d Ipstat:%d ipenable:%d  \r\n", __func__, __LINE__,vap_bss_info.inum_sta,vap_bss_info.interop_ctrl);
+        ipstat = vap_bss_info->inum_sta;
+	ipenable = vap_bss_info->interop_ctrl;
+        wifi_util_dbg_print(WIFI_MON, "%s:%d Ipstat:%d ipenable:%d  \r\n", __func__, __LINE__,vap_bss_info->inum_sta,vap_bss_info->interop_ctrl);
     }
     if (vap_bss_info == NULL) {
 	  wifi_util_dbg_print(WIFI_MON, "%s:%d vap_bss_info is null \r\n", __func__, __LINE__);
