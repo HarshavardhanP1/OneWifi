@@ -445,6 +445,10 @@ int set_auth_req_frame_data(frame_data_t *msg) {
     if (vap_bss_info == NULL) {
 	  wifi_util_dbg_print(WIFI_MON, "%s:%d vap_bss_info is null \r\n", __func__, __LINE__);
     }
+    if (ipstat == 0) {
+        wifi_util_dbg_print(WIFI_MON, "%s:%d hey marker is disabled, ipstat:%d ipenable:%d \r\n", __func__, __LINE__,ipstat,ipenable);
+        return RETURN_OK;
+    }
     if (!isVapPrivate(msg->frame.ap_index) && !isVapHotspot(msg->frame.ap_index)){
         wifi_util_dbg_print(WIFI_MON, "%s:%d It's not a private vap or hotspot vap \r\n", __func__, __LINE__);
         return RETURN_OK;
@@ -453,6 +457,16 @@ int set_auth_req_frame_data(frame_data_t *msg) {
     if (sta_map == NULL) {
         wifi_util_error_print(WIFI_MON, "%s:%d sta_data map not found for vap_index:%d\r\n", __func__, __LINE__, msg->frame.ap_index);
         return RETURN_ERR;
+    }
+    if (ipstat < hash_map_count(sta_map)) {
+        wifi_util_dbg_print(WIFI_MON, "%s:%d hey ipstat:%d less than stamap count:%d are  \r\n", __func__, __LINE__,ipstat,hash_map_count(sta_map));
+        update_interop_sta_data(msg->frame.ap_index);
+        wifi_util_dbg_print(WIFI_MON, "%s:%d hey after freeing ipstat:%d stamap count:%d \r\n", __func__, __LINE__,ipstat,hash_map_count(sta_map));
+        return RETURN_OK;
+    }
+    if (ipstat == hash_map_count(sta_map)) {
+        wifi_util_dbg_print(WIFI_MON, "%s:%d hey ipstat:%d stamap count:%d are equal \r\n", __func__, __LINE__,ipstat,hash_map_count(sta_map));
+        return RETURN_OK;
     }
     sta = (telemetry_data_t *)hash_map_get(sta_map, mac_str);
     if (sta == NULL) {
@@ -590,19 +604,32 @@ int update_interop_sta_data(unsigned int vap_index) {
     hash_map_t *sta_map;
     telemetry_data_t *sta,*tmpsta;
     mac_addr_str_t mac_str = { 0 };
+    //int ipstat;
+    //bool ipenable;
     wifi_util_dbg_print(WIFI_MON, "%s:%d start \n", __func__, __LINE__);
+    pthread_mutex_lock(&g_monitor_module.data_lock);
     sta_map = get_interop_sta_data_map(vap_index);
     int vapindex = (int)vap_index;
     wifi_util_dbg_print(WIFI_MON, "%s:%d start details for vap_index:%d\r\n", __func__, __LINE__, vapindex);
     if (sta_map == NULL) {
         wifi_util_error_print(WIFI_MON, "%s:%d sta_data map not found for vap_index:%d\r\n", __func__, __LINE__, vapindex);
+        pthread_mutex_unlock(&g_monitor_module.data_lock);
         return RETURN_ERR;
     }
     wifi_util_dbg_print(WIFI_MON, "%s:%d started hashmap count :%d  \n", __func__, __LINE__,hash_map_count(sta_map));
     sta = hash_map_get_first(sta_map);
+    /*wifi_front_haul_bss_t *vap_bss_info = Get_wifi_object_bss_parameter(vapindex);
+    if (vap_bss_info != NULL) {
+        ipstat = vap_bss_info->inum_sta;
+	ipenable = vap_bss_info->interop_ctrl;
+        wifi_util_dbg_print(WIFI_MON, "%s:%d Ipstat:%d ipenable:%d ipstat:%d,ipenable:%d \r\n", __func__, __LINE__,vap_bss_info->inum_sta,vap_bss_info->interop_ctrl,ipstat,ipenable);
+    }*/
     wifi_util_dbg_print(WIFI_MON, "%s:%d started hashmap count :%d  \n", __func__, __LINE__,hash_map_count(sta_map));
     while (sta != NULL) {
         wifi_util_dbg_print(WIFI_MON, "%s:%d started0 hashmap count :%d  \n", __func__, __LINE__,hash_map_count(sta_map));
+        /*if(ipstat hash_map_count(sta_map)) {
+            return RETURN_OK;
+	}*/
         char *sta_mac_str = to_mac_str(sta->sta_mac, mac_str);
         wifi_util_dbg_print(WIFI_MON, "%s:%d start1 \n", __func__, __LINE__);
         print_all_messages(&sta->message_data);
@@ -621,6 +648,7 @@ int update_interop_sta_data(unsigned int vap_index) {
 	}
         wifi_util_dbg_print(WIFI_MON, "%s:%d start8 \n", __func__, __LINE__);
     }
+    pthread_mutex_unlock(&g_monitor_module.data_lock);
     wifi_util_dbg_print(WIFI_MON, "%s:%d stop details for vap_index:%d\r\n", __func__, __LINE__, vapindex);
     return RETURN_OK;
 }
