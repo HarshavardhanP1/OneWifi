@@ -437,14 +437,18 @@ int set_auth_req_frame_data(frame_data_t *msg) {
     wifi_util_dbg_print(WIFI_MON, "%s: num_stats:%d marker enable:%d \n", __FUNCTION__,global_param->num_stats,global_param->marker_enable);
     wifi_util_dbg_print(WIFI_MON, "%s:%d wifi mgmt frame message: ap_index:%d length:%d type:%d dir:%d src mac:%s rssi:%d\r\n", __func__, __LINE__, msg->frame.ap_index, msg->frame.len, msg->frame.type, msg->frame.dir, str, msg->frame.sig_dbm);
     wifi_front_haul_bss_t *vap_bss_info = Get_wifi_object_bss_parameter(msg->frame.ap_index);
-    if (vap_bss_info != NULL) {
+    /*if (vap_bss_info != NULL) {
         ipstat = vap_bss_info->inum_sta;
 	ipenable = vap_bss_info->interop_ctrl;
         wifi_util_dbg_print(WIFI_MON, "%s:%d Ipstat:%d ipenable:%d ipstat:%d,ipenable:%d \r\n", __func__, __LINE__,vap_bss_info->inum_sta,vap_bss_info->interop_ctrl,ipstat,ipenable);
-    }
+    }*/
     if (vap_bss_info == NULL) {
 	  wifi_util_dbg_print(WIFI_MON, "%s:%d vap_bss_info is null \r\n", __func__, __LINE__);
+          return RETURN_ERR;
     }
+    ipstat = vap_bss_info->inum_sta;
+    ipenable = vap_bss_info->interop_ctrl;
+    wifi_util_dbg_print(WIFI_MON, "%s:%d Ipstat:%d ipenable:%d ipstat:%d,ipenable:%d \r\n", __func__, __LINE__,vap_bss_info->inum_sta,vap_bss_info->interop_ctrl,ipstat,ipenable);
     if (ipenable == 0) {
         wifi_util_dbg_print(WIFI_MON, "%s:%d hey marker is disabled, ipstat:%d ipenable:%d \r\n", __func__, __LINE__,ipstat,ipenable);
         return RETURN_OK;
@@ -458,13 +462,13 @@ int set_auth_req_frame_data(frame_data_t *msg) {
         wifi_util_error_print(WIFI_MON, "%s:%d sta_data map not found for vap_index:%d\r\n", __func__, __LINE__, msg->frame.ap_index);
         return RETURN_ERR;
     }
-    if (ipstat < hash_map_count(sta_map)) {
+    if (ipstat < (int)hash_map_count(sta_map)) {
         wifi_util_dbg_print(WIFI_MON, "%s:%d hey ipstat:%d less than stamap count:%d are  \r\n", __func__, __LINE__,ipstat,hash_map_count(sta_map));
         update_interop_sta_data(msg->frame.ap_index);
         wifi_util_dbg_print(WIFI_MON, "%s:%d hey after freeing ipstat:%d stamap count:%d \r\n", __func__, __LINE__,ipstat,hash_map_count(sta_map));
         return RETURN_OK;
     }
-    if (ipstat == hash_map_count(sta_map)) {
+    if (ipstat == (int)hash_map_count(sta_map)) {
         wifi_util_dbg_print(WIFI_MON, "%s:%d hey ipstat:%d stamap count:%d are equal \r\n", __func__, __LINE__,ipstat,hash_map_count(sta_map));
         return RETURN_OK;
     }
