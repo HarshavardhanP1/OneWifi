@@ -445,7 +445,7 @@ int set_auth_req_frame_data(frame_data_t *msg) {
     if (vap_bss_info == NULL) {
 	  wifi_util_dbg_print(WIFI_MON, "%s:%d vap_bss_info is null \r\n", __func__, __LINE__);
     }
-    if (ipstat == 0) {
+    if (ipenable == 0) {
         wifi_util_dbg_print(WIFI_MON, "%s:%d hey marker is disabled, ipstat:%d ipenable:%d \r\n", __func__, __LINE__,ipstat,ipenable);
         return RETURN_OK;
     }
