@@ -841,6 +841,8 @@ typedef struct {
     int akm_24_8_count;
     int akm_24_2_count;
     int akm_8_2_count;
+    int status_counts[6];
+    int reason_counts[9];
     message_data_t message_data; // Message-related data
 } telemetry_data_t;
 
