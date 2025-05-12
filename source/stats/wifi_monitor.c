@@ -464,7 +464,7 @@ int set_auth_req_frame_data(frame_data_t *msg) {
     }
     if (ipstat < (int)hash_map_count(sta_map)) {
         wifi_util_dbg_print(WIFI_MON, "%s:%d hey ipstat:%d less than stamap count:%d are  \r\n", __func__, __LINE__,ipstat,hash_map_count(sta_map));
-        update_interop_sta_data(msg->frame.ap_index);
+        update_interop_sta_data(msg->frame.ap_index,1);
         wifi_util_dbg_print(WIFI_MON, "%s:%d hey after freeing ipstat:%d stamap count:%d \r\n", __func__, __LINE__,ipstat,hash_map_count(sta_map));
         return RETURN_OK;
     }
@@ -538,6 +538,32 @@ void extract_first_param(const char *message, char *first_param, char *rest_para
     }
 }*/
 
+void telemetry_event_code_count(telemetry_data_t *sta1,int vapindex, char *mac) {
+    char telemetry_buff[128] = {0};
+    char telemetry_val[256] = {0};
+    char telemetry_buff_grep[128] = {0};
+
+    if (!mac) {
+        wifi_util_dbg_print(WIFI_MON, "%s:%d start \n", __func__, __LINE__);
+        wifi_util_info_print(WIFI_MON, "Error: MAC address is NULL\n");
+        return;
+    }
+
+    memset(telemetry_buff, 0, sizeof(telemetry_buff));
+    memset(telemetry_val, 0, sizeof(telemetry_val));
+    memset(telemetry_buff_grep, 0, sizeof(telemetry_buff_grep));
+    //1,2,3,9,14,15,20,23,49
+    //1,16,30,31,43,53
+    snprintf(telemetry_buff, sizeof(telemetry_buff), "REASON_STATUS_COUNT");
+    snprintf(telemetry_val, sizeof(telemetry_val),
+             "%d,%s,Status_codes:1:%d,16:%d,30:%d,31:%d,43:%d,53:%d,Reason_codes:1:%d,2:%d,3:%d,9:%d,14:%d,15:%d,20:%d,23:%d,49:%d", vapindex, mac, sta1->status_counts[0], sta1->status_counts[1], sta1->status_counts[2], sta1->status_counts[3],sta1->status_counts[4], sta1->status_counts[5],sta1->reason_counts[0],sta1->reason_counts[1],sta1->reason_counts[2],sta1->reason_counts[3],sta1->reason_counts[4],sta1->reason_counts[5],sta1->reason_counts[6],sta1->reason_counts[7],sta1->reason_counts[8]);
+    strncpy(telemetry_buff_grep, telemetry_buff, sizeof(telemetry_buff_grep) - 1);
+    telemetry_buff_grep[sizeof(telemetry_buff_grep) - 1] = '\0';
+    wifi_util_info_print(WIFI_MON, "%s:%s\n", telemetry_buff_grep, telemetry_val);
+    wifi_util_dbg_print(WIFI_MON, "%s:%d started event funct \n", __func__, __LINE__);
+    get_stubs_descriptor()->t2_event_s_fn(telemetry_buff, telemetry_val);
+    wifi_util_dbg_print(WIFI_MON, "%s:%d exit \n", __func__, __LINE__);
+}
 
 void print_all_messages(message_data_t *msg_data) {
 
@@ -603,13 +629,13 @@ void clear_all_messages(message_data_t *msg_data) {
 }
 
 
-int update_interop_sta_data(unsigned int vap_index) {
+int update_interop_sta_data(unsigned int vap_index, int process) {
 
     hash_map_t *sta_map;
     telemetry_data_t *sta,*tmpsta;
     mac_addr_str_t mac_str = { 0 };
-    //int ipstat;
-    //bool ipenable;
+    int ipstat;
+    bool ipenable;
     wifi_util_dbg_print(WIFI_MON, "%s:%d start \n", __func__, __LINE__);
     pthread_mutex_lock(&g_monitor_module.data_lock);
     sta_map = get_interop_sta_data_map(vap_index);
@@ -622,21 +648,26 @@ int update_interop_sta_data(unsigned int vap_index) {
     }
     wifi_util_dbg_print(WIFI_MON, "%s:%d started hashmap count :%d  \n", __func__, __LINE__,hash_map_count(sta_map));
     sta = hash_map_get_first(sta_map);
-    /*wifi_front_haul_bss_t *vap_bss_info = Get_wifi_object_bss_parameter(vapindex);
+    wifi_front_haul_bss_t *vap_bss_info = Get_wifi_object_bss_parameter(vapindex);
     if (vap_bss_info != NULL) {
         ipstat = vap_bss_info->inum_sta;
 	ipenable = vap_bss_info->interop_ctrl;
         wifi_util_dbg_print(WIFI_MON, "%s:%d Ipstat:%d ipenable:%d ipstat:%d,ipenable:%d \r\n", __func__, __LINE__,vap_bss_info->inum_sta,vap_bss_info->interop_ctrl,ipstat,ipenable);
-    }*/
+    }
     wifi_util_dbg_print(WIFI_MON, "%s:%d started hashmap count :%d  \n", __func__, __LINE__,hash_map_count(sta_map));
     while (sta != NULL) {
         wifi_util_dbg_print(WIFI_MON, "%s:%d started0 hashmap count :%d  \n", __func__, __LINE__,hash_map_count(sta_map));
         /*if(ipstat hash_map_count(sta_map)) {
             return RETURN_OK;
 	}*/
+        if ((hash_map_count(sta_map) == ipstat) && process) {
+            wifi_util_dbg_print(WIFI_MON, "%s:%d hey both are equal Ipstat:%d ipenable:%d ipstat:%d,ipenable:%d \r\n", __func__, __LINE__,vap_bss_info->inum_sta,vap_bss_info->interop_ctrl,ipstat,ipenable);
+            return RETURN_OK;
+	}
         char *sta_mac_str = to_mac_str(sta->sta_mac, mac_str);
         wifi_util_dbg_print(WIFI_MON, "%s:%d start1 \n", __func__, __LINE__);
         print_all_messages(&sta->message_data);
+        telemetry_event_code_count(sta, vapindex, sta_mac_str);
         wifi_util_dbg_print(WIFI_MON, "%s:%d start2 \n", __func__, __LINE__);
         clear_all_messages(&sta->message_data);
         wifi_util_dbg_print(WIFI_MON, "%s:%d start3 \n", __func__, __LINE__);
@@ -665,7 +696,7 @@ void update_interop_sta_all_vap_data_entry(void) {
     for (index = 0; index < getTotalNumberVAPs(); index++) {
         vap_index = VAP_INDEX(mgr->hal_cap, index);
 	if (isVapPrivate(vap_index) || isVapHotspot(vap_index)) {
-            update_interop_sta_data(vap_index);
+            update_interop_sta_data(vap_index,0);
 	}
     }
     wifi_util_dbg_print(WIFI_MON, "%s:%d exit \n", __func__, __LINE__);
@@ -3073,6 +3104,36 @@ int rate_limit_log(telemetry_data_t *data, const char *message) {
     return 0;
 }
 
+int increment_reason_count(telemetry_data_t *telemetry, WlanReasonCode code) {
+    switch (code) {
+        case AWLAN_REASON_UNSPECIFIED: telemetry->reason_counts[0]++; break;
+        case AWLAN_REASON_PREV_AUTH_NOT_VALID: telemetry->reason_counts[1]++; break;
+        case AWLAN_REASON_DEAUTH_LEAVING: telemetry->reason_counts[2]++; break;
+        case AWLAN_REASON_STA_REQ_ASSOC_WITHOUT_AUTH: telemetry->reason_counts[3]++; break;
+        case AWLAN_REASON_MICHAEL_MIC_FAILURE: telemetry->reason_counts[4]++; break;
+        case AWLAN_REASON_4WAY_HANDSHAKE_TIMEOUT: telemetry->reason_counts[5]++; break;
+        case AWLAN_REASON_AKMP_NOT_VALID: telemetry->reason_counts[6]++; break;
+        case AWLAN_REASON_IEEE_802_1X_AUTH_FAILED: telemetry->reason_counts[7]++; break;
+        case AWLAN_REASON_INVALID_PMKID: telemetry->reason_counts[8]++; break;
+        default: wifi_util_dbg_print(WIFI_MON, "start %s:%d unknown reason code \n",__FUNCTION__,__LINE__); return -1;
+    }
+    return 0;
+}
+
+void increment_status_count(telemetry_data_t *telemetry, wlan_status_code_t code) {
+    switch (code) {
+        case AWLAN_STATUS_UNSPECIFIED_FAILURE: telemetry->status_counts[0]++; break;
+        case AWLAN_STATUS_AUTH_TIMEOUT: telemetry->status_counts[1]++; break;
+        case AWLAN_STATUS_ASSOC_REJECTED_TEMPORARILY: telemetry->status_counts[2]++; break;
+        case AWLAN_STATUS_ROBUST_MGMT_FRAME_POLICY_VIOLATION: telemetry->status_counts[3]++; break;
+        case AWLAN_STATUS_AKMP_NOT_VALID: telemetry->status_counts[4]++; break;
+        case AWLAN_STATUS_INVALID_PMKID: telemetry->status_counts[5]++; break;
+        default: wifi_util_dbg_print(WIFI_MON, "start %s:%d unknown status code \n",__FUNCTION__,__LINE__); return -1;
+    }
+    return 0;
+}
+
+
 int ap_status_code(int ap_index, char *src_mac, char *dest_mac, int type, int status)
 {
     //char tmp[128];
@@ -3097,6 +3158,10 @@ int ap_status_code(int ap_index, char *src_mac, char *dest_mac, int type, int st
         return RETURN_ERR;
     }
     wlan_status_code_t status_code = (wlan_status_code_t)status;
+    if (increment_status_count(sta,status_code) == -1) {
+        wifi_util_dbg_print(WIFI_MON, " exit %s:%d as p[articular status is not there\n", __func__, __LINE__);
+        return 0;
+    }
     wifi_mgmtFrameType_t frameType = (wifi_mgmtFrameType_t)type;
     const char  *status_string = get_status_string(status_code);
     const char  *marker_name = get_marker_status_string(status_code);
@@ -3154,6 +3219,10 @@ int ap_reason_code(int ap_index, char *src_mac, char *dest_mac, int type, int re
     }
 
     WlanReasonCode reason = (WlanReasonCode)reason_code;
+    if (increment_reason_count(sta,reason) == -1) {
+        wifi_util_dbg_print(WIFI_MON, " exit %s:%d as p[articular reason is not there\n", __func__, __LINE__);
+        return 0;
+    }
     wifi_mgmtFrameType_t frameType = (wifi_mgmtFrameType_t)type;
     const char  *reason_string = get_reason_string(reason);
     const char  *marker_name = get_marker_reason_string(reason);
