@@ -3120,7 +3120,7 @@ int increment_reason_count(telemetry_data_t *telemetry, WlanReasonCode code) {
     return 0;
 }
 
-void increment_status_count(telemetry_data_t *telemetry, wlan_status_code_t code) {
+int increment_status_count(telemetry_data_t *telemetry, wlan_status_code_t code) {
     switch (code) {
         case AWLAN_STATUS_UNSPECIFIED_FAILURE: telemetry->status_counts[0]++; break;
         case AWLAN_STATUS_AUTH_TIMEOUT: telemetry->status_counts[1]++; break;
