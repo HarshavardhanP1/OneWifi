@@ -649,18 +649,20 @@ int update_interop_sta_data(unsigned int vap_index, int process) {
     wifi_util_dbg_print(WIFI_MON, "%s:%d started hashmap count :%d  \n", __func__, __LINE__,hash_map_count(sta_map));
     sta = hash_map_get_first(sta_map);
     wifi_front_haul_bss_t *vap_bss_info = Get_wifi_object_bss_parameter(vapindex);
-    if (vap_bss_info != NULL) {
-        ipstat = vap_bss_info->inum_sta;
-	ipenable = vap_bss_info->interop_ctrl;
-        wifi_util_dbg_print(WIFI_MON, "%s:%d Ipstat:%d ipenable:%d ipstat:%d,ipenable:%d \r\n", __func__, __LINE__,vap_bss_info->inum_sta,vap_bss_info->interop_ctrl,ipstat,ipenable);
+    if (vap_bss_info == NULL) {
+	  wifi_util_dbg_print(WIFI_MON, "%s:%d vap_bss_info is null \r\n", __func__, __LINE__);
+          return RETURN_ERR;
     }
+    ipstat = vap_bss_info->inum_sta;
+    ipenable = vap_bss_info->interop_ctrl;
+    wifi_util_dbg_print(WIFI_MON, "%s:%d Ipstat:%d ipenable:%d ipstat:%d,ipenable:%d \r\n", __func__, __LINE__,vap_bss_info->inum_sta,vap_bss_info->interop_ctrl,ipstat,ipenable);
     wifi_util_dbg_print(WIFI_MON, "%s:%d started hashmap count :%d  \n", __func__, __LINE__,hash_map_count(sta_map));
     while (sta != NULL) {
         wifi_util_dbg_print(WIFI_MON, "%s:%d started0 hashmap count :%d  \n", __func__, __LINE__,hash_map_count(sta_map));
         /*if(ipstat hash_map_count(sta_map)) {
             return RETURN_OK;
 	}*/
-        if ((hash_map_count(sta_map) == ipstat) && process) {
+        if (((int)hash_map_count(sta_map) == ipstat) && process) {
             wifi_util_dbg_print(WIFI_MON, "%s:%d hey both are equal Ipstat:%d ipenable:%d ipstat:%d,ipenable:%d \r\n", __func__, __LINE__,vap_bss_info->inum_sta,vap_bss_info->interop_ctrl,ipstat,ipenable);
             return RETURN_OK;
 	}
