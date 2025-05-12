@@ -637,13 +637,13 @@ int update_interop_sta_data(unsigned int vap_index, int process) {
     int ipstat;
     bool ipenable;
     wifi_util_dbg_print(WIFI_MON, "%s:%d start \n", __func__, __LINE__);
-    pthread_mutex_lock(&g_monitor_module.data_lock);
+    //pthread_mutex_lock(&g_monitor_module.data_lock);
     sta_map = get_interop_sta_data_map(vap_index);
     int vapindex = (int)vap_index;
     wifi_util_dbg_print(WIFI_MON, "%s:%d start details for vap_index:%d\r\n", __func__, __LINE__, vapindex);
     if (sta_map == NULL) {
         wifi_util_error_print(WIFI_MON, "%s:%d sta_data map not found for vap_index:%d\r\n", __func__, __LINE__, vapindex);
-        pthread_mutex_unlock(&g_monitor_module.data_lock);
+        //pthread_mutex_unlock(&g_monitor_module.data_lock);
         return RETURN_ERR;
     }
     wifi_util_dbg_print(WIFI_MON, "%s:%d started hashmap count :%d  \n", __func__, __LINE__,hash_map_count(sta_map));
@@ -685,7 +685,7 @@ int update_interop_sta_data(unsigned int vap_index, int process) {
 	}
         wifi_util_dbg_print(WIFI_MON, "%s:%d start8 \n", __func__, __LINE__);
     }
-    pthread_mutex_unlock(&g_monitor_module.data_lock);
+    //pthread_mutex_unlock(&g_monitor_module.data_lock);
     wifi_util_dbg_print(WIFI_MON, "%s:%d stop details for vap_index:%d\r\n", __func__, __LINE__, vapindex);
     return RETURN_OK;
 }
