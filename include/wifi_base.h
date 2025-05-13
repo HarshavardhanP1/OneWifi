@@ -781,19 +781,19 @@ typedef struct {
     long long int timestamp;
 } __attribute__((packed)) radarInfo_t;
 
-typedef struct {
+/*typedef struct {
     char **messages; // Dynamically allocated array of messages
     int *repeated_counts; // Array to keep track of repeated counts for each message
     //time_t *first_set_times; // Array to keep track of the first set time for each message
     int msg_count;
     int msg_capacity;
-} message_data_t;
+} message_data_t;*/
 
 typedef struct {
     mac_address_t sta_mac;
     int status_counts[6];
     int reason_counts[9];
-    message_data_t message_data; // Message-related data
+    //message_data_t message_data; // Message-related data
 } interop_data_t;
 
 typedef struct {
