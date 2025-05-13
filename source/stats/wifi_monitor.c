@@ -444,10 +444,10 @@ int set_auth_req_frame_data(frame_data_t *msg) {
     ipstat = vap_bss_info->inum_sta;
     ipenable = vap_bss_info->interop_ctrl;
     wifi_util_dbg_print(WIFI_MON, "%s:%d Ipstat:%d ipenable:%d ipstat:%d,ipenable:%d \r\n", __func__, __LINE__,vap_bss_info->inum_sta,vap_bss_info->interop_ctrl,ipstat,ipenable);
-    if (ipenable == 0) {
+    /*if (ipenable == 0) {
         wifi_util_dbg_print(WIFI_MON, "%s:%d hey marker is disabled, ipstat:%d ipenable:%d \r\n", __func__, __LINE__,ipstat,ipenable);
         return RETURN_OK;
-    }
+    }*/
     if (!isVapPrivate(msg->frame.ap_index) && !isVapHotspot(msg->frame.ap_index)){
         wifi_util_dbg_print(WIFI_MON, "%s:%d It's not a private vap or hotspot vap \r\n", __func__, __LINE__);
         return RETURN_OK;
@@ -457,7 +457,7 @@ int set_auth_req_frame_data(frame_data_t *msg) {
         wifi_util_error_print(WIFI_MON, "%s:%d sta_data map not found for vap_index:%d\r\n", __func__, __LINE__, msg->frame.ap_index);
         return RETURN_ERR;
     }
-    if (ipstat < (int)hash_map_count(sta_map)) {
+    /*if (ipstat < (int)hash_map_count(sta_map)) {
         wifi_util_dbg_print(WIFI_MON, "%s:%d hey ipstat:%d less than stamap count:%d are  \r\n", __func__, __LINE__,ipstat,hash_map_count(sta_map));
         update_interop_sta_data(msg->frame.ap_index,1);
         wifi_util_dbg_print(WIFI_MON, "%s:%d hey after freeing ipstat:%d stamap count:%d \r\n", __func__, __LINE__,ipstat,hash_map_count(sta_map));
@@ -466,7 +466,7 @@ int set_auth_req_frame_data(frame_data_t *msg) {
     if (ipstat == (int)hash_map_count(sta_map)) {
         wifi_util_dbg_print(WIFI_MON, "%s:%d hey ipstat:%d stamap count:%d are equal \r\n", __func__, __LINE__,ipstat,hash_map_count(sta_map));
         return RETURN_OK;
-    }
+    }*/
     sta = (interop_data_t *)hash_map_get(sta_map, mac_str);
     if (sta == NULL) {
         sta = create_interop_sta_data_hash_map(sta_map, frame->sa);
@@ -657,10 +657,10 @@ int update_interop_sta_data(unsigned int vap_index, int process) {
     wifi_util_dbg_print(WIFI_MON, "%s:%d started hashmap count :%d  \n", __func__, __LINE__,hash_map_count(sta_map));
     while (sta != NULL) {
         wifi_util_dbg_print(WIFI_MON, "%s:%d started0 hashmap count :%d  \n", __func__, __LINE__,hash_map_count(sta_map));
-        if (((int)hash_map_count(sta_map) == ipstat) && process) {
+        /*if (((int)hash_map_count(sta_map) == ipstat) && process) {
             wifi_util_dbg_print(WIFI_MON, "%s:%d hey both are equal Ipstat:%d ipenable:%d ipstat:%d,ipenable:%d \r\n", __func__, __LINE__,vap_bss_info->inum_sta,vap_bss_info->interop_ctrl,ipstat,ipenable);
             return RETURN_OK;
-	}
+	}*/
         char *sta_mac_str = to_mac_str(sta->sta_mac, mac_str);
         wifi_util_dbg_print(WIFI_MON, "%s:%d start1 \n", __func__, __LINE__);
         //print_all_messages(&sta->message_data);
