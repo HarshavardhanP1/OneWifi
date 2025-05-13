@@ -782,6 +782,21 @@ typedef struct {
 } __attribute__((packed)) radarInfo_t;
 
 typedef struct {
+    char **messages; // Dynamically allocated array of messages
+    int *repeated_counts; // Array to keep track of repeated counts for each message
+    //time_t *first_set_times; // Array to keep track of the first set time for each message
+    int msg_count;
+    int msg_capacity;
+} message_data_t;
+
+typedef struct {
+    mac_address_t sta_mac;
+    int status_counts[6];
+    int reason_counts[9];
+    message_data_t message_data; // Message-related data
+} interop_data_t;
+
+typedef struct {
     char    name[16];
     wifi_radio_operationParam_t oper;
     rdk_wifi_vap_map_t          vaps;
@@ -824,14 +839,6 @@ typedef struct {
 } __attribute__((__packed__)) assoc_req_elem_t;
 
 typedef struct {
-    char **messages; // Dynamically allocated array of messages
-    int *repeated_counts; // Array to keep track of repeated counts for each message
-    //time_t *first_set_times; // Array to keep track of the first set time for each message
-    int msg_count;
-    int msg_capacity;
-} message_data_t;
-
-typedef struct {
     mac_address_t sta_mac;
     int assoc_akm;
     int eapol_akm;
@@ -841,9 +848,6 @@ typedef struct {
     int akm_24_8_count;
     int akm_24_2_count;
     int akm_8_2_count;
-    int status_counts[6];
-    int reason_counts[9];
-    message_data_t message_data; // Message-related data
 } telemetry_data_t;
 
 typedef struct {
