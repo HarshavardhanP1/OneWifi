@@ -470,7 +470,7 @@ int set_auth_req_frame_data(frame_data_t *msg) {
     }*/
     sta = (interop_data_t *)hash_map_get(sta_map, mac_str);
     if (sta == NULL) {
-        sta = create_interop_sta_data_hash_map(sta_map, frame->sa);
+        sta = create_interop_sta_data_hash_map(sta_map, frame->sa, frame->da);
         if (sta == NULL) {
 	     wifi_util_error_print(WIFI_MON, "%s:%d sta is showing null even after created \r\n", __func__, __LINE__); 
             return RETURN_ERR;
@@ -553,7 +553,7 @@ void telemetry_event_code_count(interop_data_t *sta1,int vapindex, char *mac, ch
     //1,16,30,31,43,53
     snprintf(telemetry_buff, sizeof(telemetry_buff), "REASON_STATUS_COUNT");
     snprintf(telemetry_val, sizeof(telemetry_val),
-             "Client:%d,%s,Status_codes:1:%d,16:%d,30:%d,31:%d,43:%d,53:%d,Reason_codes:1:%d,2:%d,3:%d,9:%d,14:%d,15:%d,20:%d,23:%d,49:%d,AP:%d,%s,Status_codes:1:%d,16:%d,30:%d,31:%d,43:%d,53:%d,Reason_codes:1:%d,2:%d,3:%d,9:%d,14:%d,15:%d,20:%d,23:%d,49:%d ", vapindex+1, mac, sta1->status_counts[0], sta1->status_counts[1], sta1->status_counts[2], sta1->status_counts[3],sta1->status_counts[4], sta1->status_counts[5],sta1->reason_counts[0],sta1->reason_counts[1],sta1->reason_counts[2],sta1->reason_counts[3],sta1->reason_counts[4],sta1->reason_counts[5],sta1->reason_counts[6],sta1->reason_counts[7],sta1->reason_counts[8],vapindex+1, ap, sta1->ap_status_counts[0], sta1->ap_status_counts[1], sta1->ap_status_counts[2], sta1->ap_status_counts[3],sta1->ap_status_counts[4], sta1->ap_status_counts[5],sta1->ap_reason_counts[0],sta1->ap_reason_counts[1],sta1->ap_reason_counts[2],sta1->ap_reason_counts[3],sta1->ap_reason_counts[4],sta1->ap_reason_counts[5],sta1->ap_reason_counts[6],sta1->ap_reason_counts[7],sta1->ap_reason_counts[8]);
+             "Client:%d,%s,Status_codes:1:%d,16:%d,30:%d,31:%d,43:%d,53:%d,Reason_codes:1:%d,2:%d,3:%d,9:%d,14:%d,15:%d,20:%d,23:%d,49:%d,AP:%d,%s,Status_codes:1:%d,16:%d,30:%d,31:%d,43:%d,53:%d,Reason_codes:1:%d,2:%d,3:%d,9:%d,14:%d,15:%d,20:%d,23:%d,49:%d ", vapindex+1, mac, sta1->sta_status_counts[0], sta1->sta_status_counts[1], sta1->sta_status_counts[2], sta1->sta_status_counts[3],sta1->sta_status_counts[4], sta1->sta_status_counts[5],sta1->sta_reason_counts[0],sta1->sta_reason_counts[1],sta1->sta_reason_counts[2],sta1->sta_reason_counts[3],sta1->sta_reason_counts[4],sta1->sta_reason_counts[5],sta1->sta_reason_counts[6],sta1->sta_reason_counts[7],sta1->sta_reason_counts[8],vapindex+1, ap, sta1->ap_status_counts[0], sta1->ap_status_counts[1], sta1->ap_status_counts[2], sta1->ap_status_counts[3],sta1->ap_status_counts[4], sta1->ap_status_counts[5],sta1->ap_reason_counts[0],sta1->ap_reason_counts[1],sta1->ap_reason_counts[2],sta1->ap_reason_counts[3],sta1->ap_reason_counts[4],sta1->ap_reason_counts[5],sta1->ap_reason_counts[6],sta1->ap_reason_counts[7],sta1->ap_reason_counts[8]);
     strncpy(telemetry_buff_grep, telemetry_buff, sizeof(telemetry_buff_grep) - 1);
     telemetry_buff_grep[sizeof(telemetry_buff_grep) - 1] = '\0';
     wifi_util_info_print(WIFI_MON, "%s:%s\n", telemetry_buff_grep, telemetry_val);
