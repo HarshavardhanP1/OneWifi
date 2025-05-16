@@ -3266,7 +3266,7 @@ int ap_reason_code(int ap_index, char *src_mac, char *dest_mac, int type, int re
 	return 0;
     }
     WlanReasonCode reason = (WlanReasonCode)reason_code;
-    if (increment_reason_count(sta, reason_code, is_ap) == -1) {
+    if (increment_reason_count(sta, reason, is_ap) == -1) {
         wifi_util_dbg_print(WIFI_MON, " exit %s:%d as p[articular reason is not there\n", __func__, __LINE__);
         return 0;
     }
