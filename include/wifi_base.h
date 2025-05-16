@@ -792,8 +792,8 @@ typedef struct {
 typedef struct {
     mac_address_t sta_mac;
     mac_address_t ap_mac;
-    int status_counts[6];
-    int reason_counts[9];
+    int sta_status_counts[6];
+    int sta_reason_counts[9];
     int ap_status_counts[6];
     int ap_reason_counts[9];
     //message_data_t message_data; // Message-related data
