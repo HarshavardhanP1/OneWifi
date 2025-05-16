@@ -3200,7 +3200,6 @@ int ap_status_code(int ap_index, char *src_mac, char *dest_mac, int type, int st
     else {
         is_ap = 0;
         wifi_util_dbg_print(WIFI_MON, " exit %s:%d as is_ap is 0 \n", __func__, __LINE__);
-	return 0;
     }
     wlan_status_code_t status_code = (wlan_status_code_t)status;
     if (increment_status_count(sta, status_code, is_ap) == -1) {
