@@ -3189,20 +3189,17 @@ int ap_status_code(int ap_index, char *src_mac, char *dest_mac, int type, int st
     }
     sta = (interop_data_t *)hash_map_get(sta_map, src_mac);
     if (NULL == sta) {
-        wifi_util_error_print(WIFI_MON, "%s:%d station is not found for vap_index:%d src_mac :%s \r\n", __func__, __LINE__, ap_index, src_mac);
+        is_ap = 1;
+        wifi_util_error_print(WIFI_MON, "%s:%d is_ap is 1 as station is not found for vap_index:%d src_mac :%s \r\n", __func__, __LINE__, ap_index, src_mac);
         sta = (interop_data_t *)hash_map_get(sta_map, dest_mac);
         if (NULL == sta) {
             wifi_util_error_print(WIFI_MON, "%s:%d station is not found for vap_index:%d dest_mac :%s \r\n", __func__, __LINE__, ap_index, dest_mac);
             return RETURN_ERR;
 	}
     }
-    if (memcmp(src_mac, sta->sta_mac, sizeof(mac_address_t)) == 0 ) {
+    else {
         is_ap = 0;
-    } else if (memcmp(src_mac, sta->ap_mac, sizeof(mac_address_t)) == 0 ) {
-        is_ap = 1;
-    }
-    if (is_ap == -1) {
-        wifi_util_dbg_print(WIFI_MON, " exit %s:%d as is_ap is -1 \n", __func__, __LINE__);
+        wifi_util_dbg_print(WIFI_MON, " exit %s:%d as is_ap is 0 \n", __func__, __LINE__);
 	return 0;
     }
     wlan_status_code_t status_code = (wlan_status_code_t)status;
