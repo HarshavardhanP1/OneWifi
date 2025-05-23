@@ -377,6 +377,11 @@ interop_data_t *create_interop_sta_data_hash_map(hash_map_t *sta_map, mac_addr_t
     mac_addr_str_t mac_str = { 0 };
     interop_data_t *sta = NULL;
     wifi_util_dbg_print(WIFI_MON, "%s:%d start \n", __func__, __LINE__);
+    if (l_sta_mac == NULL || l_ap_mac == NULL) {
+        wifi_util_error_print(WIFI_MON, "%s:%d as l_sta_mac,l_ap_mac is null \r\n", __func__, __LINE__);
+        pthread_mutex_unlock(&g_monitor_module.data_lock);
+        return NULL;
+    }    
     sta = (interop_data_t *)malloc(sizeof(interop_data_t));
     if (sta == NULL) {
         wifi_util_error_print(WIFI_MON, "%s:%d malloc allocation failure\r\n", __func__, __LINE__);
@@ -384,6 +389,17 @@ interop_data_t *create_interop_sta_data_hash_map(hash_map_t *sta_map, mac_addr_t
         return NULL;
     }
     memset(sta, 0, sizeof(interop_data_t));
+    wifi_util_dbg_print(WIFI_MON, "%s:%d l_sta_mac contents: ", __func__, __LINE__);
+    for (int i = 0; i < MAC_ADDR_LEN; i++) {
+        wifi_util_dbg_print(WIFI_MON, "%02x ", l_sta_mac[i]);
+    }
+    wifi_util_dbg_print(WIFI_MON, "\n");
+
+    wifi_util_dbg_print(WIFI_MON, "%s:%d l_ap_mac contents: ", __func__, __LINE__);
+    for (int i = 0; i < MAC_ADDR_LEN; i++) {
+        wifi_util_dbg_print(WIFI_MON, "%02x ", l_ap_mac[i]);
+    }
+    wifi_util_dbg_print(WIFI_MON, "\n");
     memcpy(sta->sta_mac, l_sta_mac, sizeof(mac_addr_t));
     memcpy(sta->ap_mac, l_ap_mac, sizeof(mac_addr_t));
     char *mac_str_dup = strdup(to_mac_str(l_sta_mac, mac_str));
@@ -428,6 +444,10 @@ int set_auth_req_frame_data(frame_data_t *msg) {
     bool ipenable;
     wifi_util_dbg_print(WIFI_MON, "%s:%d start \n", __func__, __LINE__);
     frame = (struct ieee80211_mgmt *)msg->data;
+    if (frame == NULL || frame->sa == NULL || frame->da == NULL) {
+        wifi_util_error_print(WIFI_MON, "%s:%d frame details are null \r\n", __func__, __LINE__);
+        return RETURN_ERR;
+    }
     str = to_mac_str(frame->sa, mac_str);
     if (str == NULL) {
         wifi_util_error_print(WIFI_MON, "%s:%d mac str convert failure\r\n", __func__, __LINE__);
