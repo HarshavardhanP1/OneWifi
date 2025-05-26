@@ -603,7 +603,7 @@ void get_translator_config_wpa_mfp(
 {
     if (vap->u.bss_info.security.mode == wifi_security_mode_wpa3_personal || vap->u.bss_info.security.mode == wifi_security_mode_wpa3_enterprise) {
         vap->u.bss_info.security.mfp = wifi_mfp_cfg_required;
-    } else if (vap->u.bss_info.security.mode == wifi_security_mode_wpa3_transition || vap->u.bss_info.security.mode == wifi_security_mode_wpa3_compatibility) {
+    } else if (vap->u.bss_info.security.mode == wifi_security_mode_wpa3_transition) {
         vap->u.bss_info.security.mfp = wifi_mfp_cfg_optional;
     } else {
         vap->u.bss_info.security.mfp = wifi_mfp_cfg_disabled;
@@ -901,11 +901,12 @@ webconfig_error_t translator_ovsdb_init(webconfig_subdoc_data_t *data)
         convert_radio_index_to_freq_band(&hal_cap->wifi_prop, radioIndx, &band);
         default_vap_info->u.bss_info.mbo_enabled = true;
 #if defined(_XB7_PRODUCT_REQ_) || defined(_XB8_PRODUCT_REQ_) || defined(_XB10_PRODUCT_REQ_) || \
-    defined(_SCER11BEL_PRODUCT_REQ_) || defined(_CBR2_PRODUCT_REQ_)
+    defined(_SCER11BEL_PRODUCT_REQ_) || defined(_CBR2_PRODUCT_REQ_) || defined(_SR213_PRODUCT_REQ_)
         default_vap_info->u.bss_info.hostap_mgt_frame_ctrl = true;
         default_vap_info->u.bss_info.interop_ctrl = false;
 #endif // defined(_XB7_PRODUCT_REQ_) || defined(_XB8_PRODUCT_REQ_) || defined(_XB10_PRODUCT_REQ_) ||
-       // defined(_SCER11BEL_PRODUCT_REQ_) || defined(_CBR2_PRODUCT_REQ_)
+       // defined(_SCER11BEL_PRODUCT_REQ_) || defined(_CBR2_PRODUCT_REQ_) ||
+       // defined(_SR213_PRODUCT_REQ_)
         if (is_vap_private(&hal_cap->wifi_prop, vapIndex) == TRUE) {
             default_vap_info->u.bss_info.network_initiated_greylist = false;
             default_vap_info->u.bss_info.vapStatsEnable = true;
@@ -2049,10 +2050,8 @@ static webconfig_error_t translate_vap_info_to_ovsdb_sec_new(wifi_vap_info_t *va
     }
 
     enum_sec = vap->u.bss_info.security.mode;
-    if (key_mgmt_conversion(&enum_sec, vap_row->wpa_key_mgmt[0],
-        vap_row->wpa_key_mgmt[1], sizeof(vap_row->wpa_key_mgmt[0]),
-        sizeof(vap_row->wpa_key_mgmt[1]), ENUM_TO_STRING, &len) != RETURN_OK) {
-        wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d failed top convert key mgmt: "
+    if ((key_mgmt_conversion(&enum_sec, &len, ENUM_TO_STRING, 0, (char(*)[])vap_row->wpa_key_mgmt)) != RETURN_OK) {
+        wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d failed to convert key mgmt: "
             "security mode 0x%x\n", __func__, __LINE__, vap->u.bss_info.security.mode);
         return webconfig_error_translate_to_ovsdb;
     }
@@ -2377,8 +2376,9 @@ webconfig_error_t translate_sta_vap_info_to_ovsdb_config_personal_sec(const wifi
         } else {
             int len = 0, wpa_psk_index = 0;
             wifi_security_modes_t enum_sec = vap->u.sta_info.security.mode;
-            if ((key_mgmt_conversion(&enum_sec, vap_row->wpa_key_mgmt[0], vap_row->wpa_key_mgmt[1], sizeof(vap_row->wpa_key_mgmt[0]), sizeof(vap_row->wpa_key_mgmt[1]), ENUM_TO_STRING, &len)) != RETURN_OK) {
-                wifi_util_error_print(WIFI_WEBCONFIG,"%s:%d: key mgmt conversion failed. security mode 0x%x\n", __func__, __LINE__, vap->u.sta_info.security.mode);
+            if ((key_mgmt_conversion(&enum_sec, &len, ENUM_TO_STRING, 0, (char(*)[])vap_row->wpa_key_mgmt)) != RETURN_OK) {
+                wifi_util_error_print(WIFI_WEBCONFIG,"%s:%d: key mgmt conversion failed. security mode 0x%x\n",
+                    __func__, __LINE__, vap->u.sta_info.security.mode);
                 return webconfig_error_translate_to_ovsdb;
             }
 
@@ -2830,10 +2830,8 @@ static webconfig_error_t translate_vap_info_to_vif_state_sec_new(wifi_vap_info_t
     }
 
     enum_sec = vap->u.bss_info.security.mode;
-    if (key_mgmt_conversion(&enum_sec, vap_row->wpa_key_mgmt[0],
-        vap_row->wpa_key_mgmt[1], sizeof(vap_row->wpa_key_mgmt[0]),
-        sizeof(vap_row->wpa_key_mgmt[1]), ENUM_TO_STRING, &len) != RETURN_OK) {
-        wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d failed top convert key mgmt: "
+    if ((key_mgmt_conversion(&enum_sec, &len, ENUM_TO_STRING, 0, (char(*)[])vap_row->wpa_key_mgmt)) != RETURN_OK) {
+        wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d failed to convert key mgmt: "
             "security mode 0x%x\n", __func__, __LINE__, vap->u.bss_info.security.mode);
         return webconfig_error_translate_to_ovsdb;
     }
@@ -3107,7 +3105,8 @@ webconfig_error_t translate_sta_vap_info_to_ovsdb_state_personal_sec(const wifi_
         } else {
             int len = 0, wpa_psk_index = 0;
             wifi_security_modes_t enum_sec = vap->u.sta_info.security.mode;
-            if ((key_mgmt_conversion(&enum_sec, vap_row->wpa_key_mgmt[0], vap_row->wpa_key_mgmt[1], sizeof(vap_row->wpa_key_mgmt[0]), sizeof(vap_row->wpa_key_mgmt[1]), ENUM_TO_STRING, &len)) != RETURN_OK) {
+
+            if ((key_mgmt_conversion(&enum_sec, &len, ENUM_TO_STRING, 0, (char(*)[])vap_row->wpa_key_mgmt)) != RETURN_OK) {
                 wifi_util_dbg_print(WIFI_WEBCONFIG,"%s:%d: key mgmt conversion failed\n", __func__, __LINE__);
                 return webconfig_error_translate_to_ovsdb;
             }
@@ -3709,16 +3708,12 @@ static webconfig_error_t translate_ovsdb_to_vap_info_sec_new(const struct
             return webconfig_error_translate_from_ovsdb;
         }
 
-        if (key_mgmt_conversion(&enum_sec, (char *)vap_row->wpa_key_mgmt[0],
-            (char *)vap_row->wpa_key_mgmt[1], sizeof(vap_row->wpa_key_mgmt[0]),
-            sizeof(vap_row->wpa_key_mgmt[1]), STRING_TO_ENUM, &len) != RETURN_OK) {
+        if ((key_mgmt_conversion(&enum_sec, &len, STRING_TO_ENUM, vap_row->wpa_key_mgmt_len, (char(*)[])vap_row->wpa_key_mgmt)) != RETURN_OK) {
             wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d failed to convert key mgmt: %s\n",
                 __func__, __LINE__, vap_row->wpa_key_mgmt[0] ? vap_row->wpa_key_mgmt[0] : "NULL");
             return webconfig_error_translate_from_ovsdb;
         }
-        if (is_security_mode_updated(vap->u.bss_info.security.mode, enum_sec)) {
-            vap->u.bss_info.security.mode = enum_sec;
-        }
+        vap->u.bss_info.security.mode = enum_sec;
     }
 
     get_translator_config_wpa_mfp(vap);
@@ -4126,9 +4121,9 @@ webconfig_error_t translate_ovsdb_config_to_vap_info_personal_sec(const struct s
                 return webconfig_error_translate_from_ovsdb;
             }
 
-            if ((key_mgmt_conversion(&enum_sec, (char *)vap_row->wpa_key_mgmt[0], (char *)vap_row->wpa_key_mgmt[1], sizeof(vap_row->wpa_key_mgmt[0]), sizeof(vap_row->wpa_key_mgmt[1]), STRING_TO_ENUM, &len)) != RETURN_OK) {
-                wifi_util_error_print(WIFI_WEBCONFIG,"%s:%d: key mgmt conversion failed. wpa_key_mgmt '%s'\n", __func__, __LINE__, 
-                    (vap_row->wpa_key_mgmt[0]) ? vap_row->wpa_key_mgmt[0]: "NULL");
+            if ((key_mgmt_conversion(&enum_sec, &len, STRING_TO_ENUM, vap_row->wpa_key_mgmt_len, (char(*)[])vap_row->wpa_key_mgmt)) != RETURN_OK) {
+                wifi_util_error_print(WIFI_WEBCONFIG,"%s:%d: key mgmt conversion failed. wpa_key_mgmt '%s'\n",
+                    __func__, __LINE__, (vap_row->wpa_key_mgmt[0]) ? vap_row->wpa_key_mgmt[0]: "NULL");
                 return webconfig_error_translate_from_ovsdb;
             }
             vap->u.sta_info.security.mode = enum_sec;

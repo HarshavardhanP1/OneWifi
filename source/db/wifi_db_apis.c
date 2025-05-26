@@ -982,6 +982,10 @@ void callback_Wifi_VAP_Config(ovsdb_update_monitor_t *mon,
             l_bss_param_cfg->mac_filter_enable = new_rec->mac_filter_enabled;
             l_bss_param_cfg->mac_filter_mode = new_rec->mac_filter_mode;
             l_bss_param_cfg->wmm_enabled = new_rec->wmm_enabled;
+            l_bss_param_cfg->mld_info.common_info.mld_enable = new_rec->mld_enable;
+            l_bss_param_cfg->mld_info.common_info.mld_id = new_rec->mld_id;
+            l_bss_param_cfg->mld_info.common_info.mld_link_id = new_rec->mld_link_id;
+            l_bss_param_cfg->mld_info.common_info.mld_apply = new_rec->mld_apply;
             if (strlen(new_rec->anqp_parameters) != 0) {
                 strncpy((char *)l_bss_param_cfg->interworking.anqp.anqpParameters,new_rec->anqp_parameters,(sizeof(l_bss_param_cfg->interworking.anqp.anqpParameters)-1));
             }
@@ -2573,6 +2577,10 @@ int wifidb_update_wifi_vap_info(char *vap_name, wifi_vap_info_t *config,
         strncpy(cfg.mfp_config,"Disabled",sizeof(cfg.mfp_config)-1);
         cfg.hostap_mgt_frame_ctrl = config->u.bss_info.hostap_mgt_frame_ctrl;
         cfg.mbo_enabled = config->u.bss_info.mbo_enabled;
+        cfg.mld_enable = config->u.bss_info.mld_info.common_info.mld_enable;
+        cfg.mld_id = config->u.bss_info.mld_info.common_info.mld_id;
+        cfg.mld_link_id = config->u.bss_info.mld_info.common_info.mld_link_id;
+        cfg.mld_apply = config->u.bss_info.mld_info.common_info.mld_apply;
         cfg.interop_ctrl = config->u.bss_info.interop_ctrl;
         cfg.inum_sta = config->u.bss_info.inum_sta;
         wifi_util_dbg_print(WIFI_DB,
@@ -2585,7 +2593,8 @@ int wifidb_update_wifi_vap_info(char *vap_name, wifi_vap_info_t *config,
             "uapsd_enabled=%d beacon_rate=%d bridge_name=%s cfg.wmm_noack=%d cfg.wep_key_length=%d "
             "cfg.bss_hotspot=%d cfg.wps_push_button=%d cfg.wps_config_methods=%d "
             "cfg.wps_enabled=%d cfg.beacon_rate_ctl=%s cfg.mfp_config=%s "
-            "network_initiated_greylist=%d exists=%d hostap_mgt_frame_ctrl=%d mbo_enabled=%d interop_ctrl=%d inum_sta=%d\n",
+            "network_initiated_greylist=%d exists=%d hostap_mgt_frame_ctrl=%d mbo_enabled=%d "
+            "mld_enable=%d mld_id=%d mld_link_id=%d mld_apply=%d\n",
             __func__, __LINE__, cfg.radio_name, cfg.vap_name, cfg.ssid, cfg.enabled,
             cfg.ssid_advertisement_enabled, cfg.isolation_enabled, cfg.mgmt_power_control,
             cfg.bss_max_sta, cfg.bss_transition_activated, cfg.nbr_report_activated,
@@ -2594,7 +2603,8 @@ int wifidb_update_wifi_vap_info(char *vap_name, wifi_vap_info_t *config,
             cfg.hs2_parameters, cfg.uapsd_enabled, cfg.beacon_rate, cfg.bridge_name, cfg.wmm_noack,
             cfg.wep_key_length, cfg.bss_hotspot, cfg.wps_push_button, cfg.wps_config_methods,
             cfg.wps_enabled, cfg.beacon_rate_ctl, cfg.mfp_config, cfg.network_initiated_greylist,
-            cfg.exists, cfg.hostap_mgt_frame_ctrl, cfg.mbo_enabled, cfg.interop_ctrl, cfg.inum_sta);
+            cfg.exists, cfg.hostap_mgt_frame_ctrl, cfg.mbo_enabled,
+            cfg.mld_enable, cfg.mld_id, cfg.mld_link_id, cfg.mld_apply);
     }
     if(onewifi_ovsdb_table_upsert_with_parent(g_wifidb->wifidb_sock_path,&table_Wifi_VAP_Config,&cfg,false,filter_vap,SCHEMA_TABLE(Wifi_Radio_Config),(onewifi_ovsdb_where_simple(SCHEMA_COLUMN(Wifi_Radio_Config,radio_name),radio_name)),SCHEMA_COLUMN(Wifi_Radio_Config,vap_configs)) == false)
     {
@@ -4121,12 +4131,13 @@ int wifidb_init_interworking_config_default(int vapIndex,void /*wifi_Interworkin
     strcpy(interworking.hessid,"11:22:33:44:55:66");
     if (isVapHotspot(vapIndex))    //Xfinity hotspot vaps
     {
-         interworking.accessNetworkType = 2;
+        interworking.accessNetworkType = 2;
+        interworking.venueOptionPresent = 1;
     } else {
-         interworking.accessNetworkType = 0;
+        interworking.accessNetworkType = 0;
+        interworking.venueOptionPresent = 0;
     }
 
-    interworking.venueOptionPresent = 1;
     interworking.venueGroup = 0;
     interworking.venueType = 0;
 
@@ -4456,7 +4467,7 @@ static void wifidb_vap_config_upgrade(wifi_vap_info_map_t *config, rdk_wifi_vap_
 
         if (g_wifidb->db_version < ONEWIFI_DB_VERSION_HOSTAP_MGMT_FRAME_CTRL_FLAG) {
 #if defined(_XB7_PRODUCT_REQ_) || defined(_XB8_PRODUCT_REQ_) || defined(_XB10_PRODUCT_REQ_) || \
-    defined(_SCER11BEL_PRODUCT_REQ_) || defined(_CBR2_PRODUCT_REQ_)
+    defined(_SCER11BEL_PRODUCT_REQ_) || defined(_CBR2_PRODUCT_REQ_) || defined(_SR213_PRODUCT_REQ_)
             config->vap_array[i].u.bss_info.hostap_mgt_frame_ctrl = true;
             wifi_util_dbg_print(WIFI_DB,
                 "%s:%d Update hostap_mgt_frame_ctrl:%d for vap_index:%d \n", __func__, __LINE__,
@@ -4543,7 +4554,7 @@ void wifidb_vap_config_correction(wifi_vap_info_map_t *l_vap_map_param)
 
         if (isVapPrivate(vap_config->vap_index) &&
             is_sec_mode_personal(vap_config->u.bss_info.security.mode)) {
-#ifdef FEATURE_SUPPORT_WPS
+#if defined(FEATURE_SUPPORT_WPS) &&  !defined(_SR213_PRODUCT_REQ_)
             if (vap_config->u.bss_info.wps.enable == false) {
                 vap_config->u.bss_info.wps.enable = true;
                 wifi_util_info_print(WIFI_DB, "%s:%d: force wps enabled for private_vap:%d\r\n",
@@ -5776,6 +5787,10 @@ int wifidb_get_wifi_vap_info(char *vap_name, wifi_vap_info_t *config,
             config->u.bss_info.interop_ctrl = pcfg->interop_ctrl;
             config->u.bss_info.inum_sta = pcfg->inum_sta;
             config->u.bss_info.mbo_enabled = pcfg->mbo_enabled;
+            config->u.bss_info.mld_info.common_info.mld_enable = pcfg->mld_enable;
+            config->u.bss_info.mld_info.common_info.mld_id = pcfg->mld_id;
+            config->u.bss_info.mld_info.common_info.mld_link_id = pcfg->mld_link_id;
+            config->u.bss_info.mld_info.common_info.mld_apply = pcfg->mld_apply;
         }
     }
     free(pcfg);
@@ -6737,6 +6752,12 @@ int wifidb_init_vap_config_default(int vap_index, wifi_vap_info_t *config,
         cfg.u.bss_info.beaconRate = WIFI_BITRATE_6MBPS;
         strncpy(cfg.u.bss_info.beaconRateCtl,"6Mbps",sizeof(cfg.u.bss_info.beaconRateCtl)-1);
         cfg.vap_mode = wifi_vap_mode_ap;
+        /*TODO: Are values correct? */
+        cfg.u.bss_info.mld_info.common_info.mld_enable = 0;
+        cfg.u.bss_info.mld_info.common_info.mld_id = 255;
+        cfg.u.bss_info.mld_info.common_info.mld_link_id = 255;
+        cfg.u.bss_info.mld_info.common_info.mld_apply = 1;
+        memset(&cfg.u.bss_info.mld_info.common_info.mld_addr, 0, sizeof(cfg.u.bss_info.mld_info.common_info.mld_addr));
         if (isVapPrivate(vap_index)) {
             cfg.u.bss_info.showSsid = true;
 #ifdef FEATURE_SUPPORT_WPS
@@ -6794,7 +6815,7 @@ int wifidb_init_vap_config_default(int vap_index, wifi_vap_info_t *config,
 #endif //_SKY_HUB_COMMON_PRODUCT_REQ_
 
 #if defined(_XB7_PRODUCT_REQ_) || defined(_XB8_PRODUCT_REQ_) || defined(_XB10_PRODUCT_REQ_) || \
-    defined(_SCER11BEL_PRODUCT_REQ_) || defined(_CBR2_PRODUCT_REQ_)
+    defined(_SCER11BEL_PRODUCT_REQ_) || defined(_CBR2_PRODUCT_REQ_) || defined(_SR213_PRODUCT_REQ_)
         cfg.u.bss_info.hostap_mgt_frame_ctrl = true;
         wifi_util_dbg_print(WIFI_DB, "%s:%d vap_index:%d hostap_mgt_frame_ctrl:%d\n", __func__,
             __LINE__, vap_index, cfg.u.bss_info.hostap_mgt_frame_ctrl);
@@ -6804,6 +6825,7 @@ int wifidb_init_vap_config_default(int vap_index, wifi_vap_info_t *config,
         cfg.u.bss_info.inum_sta = 0;
         wifi_util_dbg_print(WIFI_DB, "%s:%d vap_index:%d interop_ctrl:%d inum_sta:%d \n", __func__,
             __LINE__, vap_index, cfg.u.bss_info.interop_ctrl, cfg.u.bss_info.inum_sta);
+
         memset(ssid, 0, sizeof(ssid));
 
         if (wifi_hal_get_default_ssid(ssid, vap_index) == 0) {
