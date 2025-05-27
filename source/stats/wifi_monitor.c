@@ -393,15 +393,15 @@ interop_data_t *create_interop_sta_data_hash_map(hash_map_t *sta_map, mac_addr_t
     for (int i = 0; i < MAC_ADDR_LEN; i++) {
         wifi_util_dbg_print(WIFI_MON, "%02x ", l_sta_mac[i]);
     }
-    wifi_util_dbg_print(WIFI_MON, "\n");
+    wifi_util_dbg_print(WIFI_MON, "hey sta mac is printed\n");
 
     wifi_util_dbg_print(WIFI_MON, "%s:%d l_ap_mac contents: ", __func__, __LINE__);
     for (int i = 0; i < MAC_ADDR_LEN; i++) {
         wifi_util_dbg_print(WIFI_MON, "%02x ", l_ap_mac[i]);
     }
-    wifi_util_dbg_print(WIFI_MON, "\n");
-    memcpy(sta->sta_mac, l_sta_mac, sizeof(mac_addr_t));
-    memcpy(sta->ap_mac, l_ap_mac, sizeof(mac_addr_t));
+    wifi_util_dbg_print(WIFI_MON, "Hey ap mac is printed\n");
+    memmove(sta->sta_mac, l_sta_mac, sizeof(mac_addr_t));
+    memmove(sta->ap_mac, l_ap_mac, sizeof(mac_addr_t));
     char *mac_str_dup = strdup(to_mac_str(l_sta_mac, mac_str));
     if (mac_str_dup == NULL) {
         wifi_util_error_print(WIFI_MON, "%s:%d strdup allocation failure\r\n", __func__, __LINE__);
