@@ -1148,7 +1148,6 @@ int set_assoc_req_frame_data(frame_data_t *msg)
         }
     }
     wpa3_enhanced_assoc_frame_data(msg);
-    wifi_util_dbg_print(WIFI_MON, "%s:%d exit \n", __func__, __LINE__);
     (void)memset(&sta->assoc_frame_data, 0, sizeof(assoc_req_elem_t));
     (void)memcpy(&sta->assoc_frame_data.msg_data, msg, sizeof(frame_data_t));
     (void)time(&frame_timestamp);
@@ -1327,27 +1326,8 @@ int set_sta_client_mode(int ap_index, char *mac, int key_mgmt, frame_type_t fram
 
 void process_deauthenticate	(unsigned int ap_index, auth_deauth_dev_t *dev)
 {
-    //char buff[2048];
-    //char tmp[128];
     sta_key_t sta_key;
-
     wifi_util_info_print(WIFI_MON, "%s:%d Device:%s deauthenticated on ap:%d with reason : %d\n", __func__, __LINE__, to_sta_key(dev->sta_mac, sta_key), ap_index, dev->reason);
-
-    /*Wrong password on private, Xfinity Home and LNF SSIDs*/
-
-    /*if ((dev->reason == 2) && ( isVapPrivate(ap_index) || isVapXhs(ap_index) || isVapLnfPsk(ap_index) ) ) {
-        get_formatted_time(tmp);
-
-        snprintf(buff, 2048, "%s WIFI_PASSWORD_FAIL:%d,%s\n", tmp, ap_index + 1, to_sta_key(dev->sta_mac, sta_key));
-        write_to_file(wifi_health_log, buff);
-    }
-    if ((dev->reason == 2 || dev->reason == 14 || dev->reason == 19) && ( isVapPrivate(ap_index) ))  {
-        get_formatted_time(tmp);
-
-        snprintf(buff, 2048, "%s WIFI_POSSIBLE_WPS_PSK_FAIL:%d,%s,%d\n", tmp, ap_index + 1, to_sta_key(dev->sta_mac, sta_key), dev->reason);
-        write_to_file(wifi_health_log, buff);
-    }*/
-    /*Calling process_disconnect as station is disconncetd from vAP*/
     process_disconnect(ap_index, dev);
 }
 
