@@ -775,10 +775,6 @@ webconfig_error_t encode_wifi_global_config(const wifi_global_param_t *global_in
     //TxRxRateList
     cJSON_AddStringToObject(global_obj, "TxRxRateList", global_info->txrx_rate_list);
 
-    cJSON_AddNumberToObject(global_obj, "num_stats", global_info->num_stats);
-
-    cJSON_AddBoolToObject(global_obj, "marker_enable",(const cJSON_bool) global_info->marker_enable);
-
     return webconfig_error_none;
 }
 

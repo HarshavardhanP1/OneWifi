@@ -1628,8 +1628,6 @@
         PJS_OVS_STRING(snr_list, 128 + 1) \
         PJS_OVS_STRING(cli_stat_list, 128 + 1) \
         PJS_OVS_STRING(txrx_rate_list, 128 + 1) \
-        PJS_OVS_INT(num_stats) \
-        PJS_OVS_BOOL(marker_enable) \
     )
 
 #define PJS_SCHEMA_Wifi_Preassoc_Control_Config \
@@ -3292,8 +3290,6 @@
     COLUMN(snr_list) \
     COLUMN(cli_stat_list) \
     COLUMN(txrx_rate_list) \
-    COLUMN(num_stats) \
-    COLUMN(marker_enable) \
 
 #define SCHEMA__Wifi_Preassoc_Control_Config "Wifi_Preassoc_Control_Config"
 #define SCHEMA_COLUMN__Wifi_Preassoc_Control_Config(COLUMN) \
@@ -4551,8 +4547,6 @@
 #define SCHEMA__Wifi_Global_Config__snr_list "snr_list"
 #define SCHEMA__Wifi_Global_Config__cli_stat_list "cli_stat_list"
 #define SCHEMA__Wifi_Global_Config__txrx_rate_list "txrx_rate_list"
-#define SCHEMA__Wifi_Global_Config__num_stats "num_stats"
-#define SCHEMA__Wifi_Global_Config__marker_enable "marker_enable"
 
 #define SCHEMA__Wifi_Preassoc_Control_Config__rssi_up_threshold "rssi_up_threshold"
 #define SCHEMA__Wifi_Preassoc_Control_Config__snr_threshold "snr_threshold"

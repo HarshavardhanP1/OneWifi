@@ -2377,12 +2377,6 @@ webconfig_error_t decode_wifi_global_config(const cJSON *global_cfg, wifi_global
     strncpy(global_info->txrx_rate_list, param->valuestring, sizeof(global_info->txrx_rate_list));
 #endif
 
-    decode_param_integer(global_cfg, "num_stats", param);
-    global_info->num_stats = param->valuedouble;
-
-    decode_param_bool(global_cfg, "marker_enable", param);
-    global_info->marker_enable = (param->type & cJSON_True) ? true:false;
-
     wifi_util_dbg_print(WIFI_WEBCONFIG,"wifi global Parameters decode successfully\n");
     return webconfig_error_none;
 }

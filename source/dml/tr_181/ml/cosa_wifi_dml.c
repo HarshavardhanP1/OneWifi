@@ -303,12 +303,6 @@ WiFi_GetParamBoolValue
         return TRUE;
     }
 
-    if (AnscEqualString(ParamName, "Marker_Enable", TRUE))
-    {
-        *pBool = pcfg->marker_enable;
-        return TRUE;
-    }
-
     if (AnscEqualString(ParamName, "X_RDKCENTRAL-COM_vAPStatsEnable", TRUE))
     {
         *pBool = pcfg->vap_stats_feature;
@@ -529,13 +523,6 @@ WiFi_GetParamIntValue
     {
         /* collect value */
         *pInt = pcfg->whix_chutility_loginterval; //seconds
-        return TRUE;
-    }
-
-    if (AnscEqualString(ParamName, "Num_Of_Stations", TRUE))
-    {
-        /* collect value */
-        *pInt = pcfg->num_stats; 
         return TRUE;
     }
 
@@ -984,18 +971,6 @@ WiFi_SetParamBoolValue
         return TRUE;
     }
     
-    if (AnscEqualString(ParamName, "Marker_Enable", TRUE))
-    {
-        if(global_wifi_config->global_parameters.marker_enable == bValue)
-        {
-            return TRUE;
-        }
-        wifi_util_dbg_print(WIFI_DMCLI,"%s:%d:marker_enable=%d Value = %d  \n",__func__, __LINE__,global_wifi_config->global_parameters.marker_enable,bValue);
-        global_wifi_config->global_parameters.marker_enable = bValue;
-        push_global_config_dml_cache_to_one_wifidb();
-        return TRUE;
-    }
-
     if (AnscEqualString(ParamName, "X_RDKCENTRAL-COM_vAPStatsEnable", TRUE))
     {
         if(global_wifi_config->global_parameters.vap_stats_feature == bValue)
@@ -1540,21 +1515,6 @@ WiFi_SetParamIntValue
         }
         return TRUE;
     }
-
-    if( AnscEqualString(ParamName, "Num_Of_Stations", TRUE))
-    {
-        if (global_wifi_config->global_parameters.num_stats == iValue)
-        {
-            return TRUE;
-        }
-        wifi_util_dbg_print(WIFI_DMCLI,"%s:%d: devices num = %d Value = %d  \n",__func__, __LINE__, global_wifi_config->global_parameters.num_stats, iValue);
-        global_wifi_config->global_parameters.num_stats = iValue; //update global structure
-        if (push_global_config_dml_cache_to_one_wifidb() != RETURN_OK) {
-            wifi_util_error_print(WIFI_DMCLI,"%s:%d: Failed to push devices num to onewifi db\n",__func__, __LINE__);
-        }
-        return TRUE;
-    }
-
 
     /* CcspTraceWarning(("Unsupported parameter '%s'\n", ParamName)); */
     return FALSE;

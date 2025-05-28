@@ -492,8 +492,6 @@ typedef struct {
     char cli_stat_list[MAX_BUF_LENGTH];
     char snr_list[MAX_BUF_LENGTH];
     char txrx_rate_list[MAX_BUF_LENGTH];
-    int  num_stats;
-    bool marker_enable;
 } __attribute__((packed)) wifi_global_param_t;
 
 typedef struct {
@@ -786,14 +784,6 @@ typedef struct {
     long long int timestamp;
 } __attribute__((packed)) radarInfo_t;
 
-/*typedef struct {
-    char **messages; // Dynamically allocated array of messages
-    int *repeated_counts; // Array to keep track of repeated counts for each message
-    //time_t *first_set_times; // Array to keep track of the first set time for each message
-    int msg_count;
-    int msg_capacity;
-} message_data_t;*/
-
 typedef struct {
     mac_address_t sta_mac;
     mac_address_t ap_mac;
@@ -801,7 +791,6 @@ typedef struct {
     int sta_reason_counts[9];
     int ap_status_counts[6];
     int ap_reason_counts[9];
-    //message_data_t message_data; // Message-related data
 } interop_data_t;
 
 typedef struct {
