@@ -453,9 +453,6 @@ int set_auth_req_frame_data(frame_data_t *msg) {
         wifi_util_error_print(WIFI_MON, "%s:%d mac str convert failure\r\n", __func__, __LINE__);
         return RETURN_ERR;
     }
-    wifi_global_param_t *global_param;
-    global_param = get_wifidb_wifi_global_param();
-    wifi_util_dbg_print(WIFI_MON, "%s: num_stats:%d marker enable:%d \n", __FUNCTION__,global_param->num_stats,global_param->marker_enable);
     wifi_util_dbg_print(WIFI_MON, "%s:%d wifi mgmt frame message: ap_index:%d length:%d type:%d dir:%d src mac:%s rssi:%d\r\n", __func__, __LINE__, msg->frame.ap_index, msg->frame.len, msg->frame.type, msg->frame.dir, str, msg->frame.sig_dbm);
     wifi_front_haul_bss_t *vap_bss_info = Get_wifi_object_bss_parameter(msg->frame.ap_index);
     if (vap_bss_info == NULL) {
@@ -3928,7 +3925,6 @@ int init_wifi_monitor()
              __FUNCTION__,__LINE__,uptimeval,(g_monitor_module.upload_period*60));
 
     global_param = get_wifidb_wifi_global_param();
-    wifi_util_dbg_print(WIFI_MON, "%s: num_stats:%d marker enable:%d \n", __FUNCTION__,global_param->num_stats,global_param->marker_enable);
     g_monitor_module.sta_health_rssi_threshold = global_param->good_rssi_threshold;
     for (i = 0; i < getTotalNumberVAPs(); i++) {
         UINT vap_index = VAP_INDEX(mgr->hal_cap, i);
