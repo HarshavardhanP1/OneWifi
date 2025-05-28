@@ -220,7 +220,7 @@ static int clientdiag_sheduler_enable(int ap_index);
 void telemetry_event_akm_count(telemetry_data_t *sta1,int vapindex, char *mac);
 void deinit_wifi_monitor(void);
 void SetBlasterMqttTopic(char *mqtt_topic);
-int update_interop_sta_data(unsigned int vap_index, int process);
+int update_interop_sta_data(unsigned int vap_index);
 static inline char *to_sta_key    (mac_addr_t mac, sta_key_t key) 
 {
     snprintf(key, STA_KEY_LEN, "%02x:%02x:%02x:%02x:%02x:%02x",
@@ -376,12 +376,6 @@ interop_data_t *create_interop_sta_data_hash_map(hash_map_t *sta_map, mac_addr_t
     pthread_mutex_lock(&g_monitor_module.data_lock);
     mac_addr_str_t mac_str = { 0 };
     interop_data_t *sta = NULL;
-    wifi_util_dbg_print(WIFI_MON, "%s:%d start \n", __func__, __LINE__);
-    if (l_sta_mac == NULL || l_ap_mac == NULL) {
-        wifi_util_error_print(WIFI_MON, "%s:%d as l_sta_mac,l_ap_mac is null \r\n", __func__, __LINE__);
-        pthread_mutex_unlock(&g_monitor_module.data_lock);
-        return NULL;
-    }    
     sta = (interop_data_t *)malloc(sizeof(interop_data_t));
     if (sta == NULL) {
         wifi_util_error_print(WIFI_MON, "%s:%d malloc allocation failure\r\n", __func__, __LINE__);
@@ -389,19 +383,11 @@ interop_data_t *create_interop_sta_data_hash_map(hash_map_t *sta_map, mac_addr_t
         return NULL;
     }
     memset(sta, 0, sizeof(interop_data_t));
-    wifi_util_dbg_print(WIFI_MON, "%s:%d l_sta_mac contents: ", __func__, __LINE__);
-    for (int i = 0; i < MAC_ADDR_LEN; i++) {
-        wifi_util_dbg_print(WIFI_MON, "%02x ", l_sta_mac[i]);
-    }
-    wifi_util_dbg_print(WIFI_MON, "hey sta mac is printed\n");
-
-    wifi_util_dbg_print(WIFI_MON, "%s:%d l_ap_mac contents: ", __func__, __LINE__);
-    for (int i = 0; i < MAC_ADDR_LEN; i++) {
-        wifi_util_dbg_print(WIFI_MON, "%02x ", l_ap_mac[i]);
-    }
-    wifi_util_dbg_print(WIFI_MON, "Hey ap mac is printed\n");
+    wifi_util_info_print(WIFI_MON, "%s:%d memcopying station_mac\r\n", __func__, __LINE__);
     memmove(sta->sta_mac, l_sta_mac, sizeof(mac_addr_t));
+    wifi_util_info_print(WIFI_MON, "%s:%d memcopying ap_mac\r\n", __func__, __LINE__);
     memmove(sta->ap_mac, l_ap_mac, sizeof(mac_addr_t));
+    wifi_util_info_print(WIFI_MON, "%s:%d strdup for station_mac\r\n", __func__, __LINE__);
     char *mac_str_dup = strdup(to_mac_str(l_sta_mac, mac_str));
     if (mac_str_dup == NULL) {
         wifi_util_error_print(WIFI_MON, "%s:%d strdup allocation failure\r\n", __func__, __LINE__);
@@ -418,7 +404,6 @@ interop_data_t *create_interop_sta_data_hash_map(hash_map_t *sta_map, mac_addr_t
 hash_map_t *get_interop_sta_data_map(unsigned int vap_index) {
 
     pthread_mutex_lock(&g_monitor_module.data_lock);
-    wifi_util_dbg_print(WIFI_MON, "%s:%d start \n", __func__, __LINE__);
     unsigned int vap_array_index;
     char vap_name[32] = {0};
     convert_vap_index_to_name(&((wifi_mgr_t *)get_wifimgr_obj())->hal_cap.wifi_prop, vap_index, vap_name);
@@ -440,11 +425,10 @@ int set_auth_req_frame_data(frame_data_t *msg) {
     struct ieee80211_mgmt *frame;
     mac_addr_str_t mac_str = { 0 };
     char *str;
-    int ipstat;
+    int ipstat,sta_map_count;
     bool ipenable;
-    wifi_util_dbg_print(WIFI_MON, "%s:%d start \n", __func__, __LINE__);
     frame = (struct ieee80211_mgmt *)msg->data;
-    if (frame == NULL || frame->sa == NULL || frame->da == NULL) {
+    if (frame == NULL) {
         wifi_util_error_print(WIFI_MON, "%s:%d frame details are null \r\n", __func__, __LINE__);
         return RETURN_ERR;
     }
@@ -453,22 +437,19 @@ int set_auth_req_frame_data(frame_data_t *msg) {
         wifi_util_error_print(WIFI_MON, "%s:%d mac str convert failure\r\n", __func__, __LINE__);
         return RETURN_ERR;
     }
-    wifi_global_param_t *global_param;
-    global_param = get_wifidb_wifi_global_param();
-    wifi_util_dbg_print(WIFI_MON, "%s: num_stats:%d marker enable:%d \n", __FUNCTION__,global_param->num_stats,global_param->marker_enable);
     wifi_util_dbg_print(WIFI_MON, "%s:%d wifi mgmt frame message: ap_index:%d length:%d type:%d dir:%d src mac:%s rssi:%d\r\n", __func__, __LINE__, msg->frame.ap_index, msg->frame.len, msg->frame.type, msg->frame.dir, str, msg->frame.sig_dbm);
     wifi_front_haul_bss_t *vap_bss_info = Get_wifi_object_bss_parameter(msg->frame.ap_index);
     if (vap_bss_info == NULL) {
-	  wifi_util_dbg_print(WIFI_MON, "%s:%d vap_bss_info is null \r\n", __func__, __LINE__);
+	  wifi_util_dbg_print(WIFI_MON, "%s:%d vap_bss_info is null for vap_idex:%d \r\n", __func__, __LINE__, msg->frame.ap_index);
           return RETURN_ERR;
     }
     ipstat = vap_bss_info->inum_sta;
     ipenable = vap_bss_info->interop_ctrl;
     wifi_util_dbg_print(WIFI_MON, "%s:%d Ipstat:%d ipenable:%d ipstat:%d,ipenable:%d \r\n", __func__, __LINE__,vap_bss_info->inum_sta,vap_bss_info->interop_ctrl,ipstat,ipenable);
-    /*if (ipenable == 0) {
-        wifi_util_dbg_print(WIFI_MON, "%s:%d hey marker is disabled, ipstat:%d ipenable:%d \r\n", __func__, __LINE__,ipstat,ipenable);
+    if (ipenable == 0) {
+        wifi_util_dbg_print(WIFI_MON, "%s:%d interopctrl is disabled, ipstat:%d ipenable:%d \r\n", __func__, __LINE__,ipstat,ipenable);
         return RETURN_OK;
-    }*/
+    }
     if (!isVapPrivate(msg->frame.ap_index) && !(isVapHotspotSecure5g(msg->frame.ap_index) || isVapHotspotSecure6g(msg->frame.ap_index) || isVapHotspotOpen5g(msg->frame.ap_index) || isVapHotspotOpen6g(msg->frame.ap_index))){
         wifi_util_dbg_print(WIFI_MON, "%s:%d It's not a private vap or hotspot vap \r\n", __func__, __LINE__);
         return RETURN_OK;
@@ -478,81 +459,22 @@ int set_auth_req_frame_data(frame_data_t *msg) {
         wifi_util_error_print(WIFI_MON, "%s:%d sta_data map not found for vap_index:%d\r\n", __func__, __LINE__, msg->frame.ap_index);
         return RETURN_ERR;
     }
-    /*if (ipstat < (int)hash_map_count(sta_map)) {
-        wifi_util_dbg_print(WIFI_MON, "%s:%d hey ipstat:%d less than stamap count:%d are  \r\n", __func__, __LINE__,ipstat,hash_map_count(sta_map));
-        update_interop_sta_data(msg->frame.ap_index,1);
-        wifi_util_dbg_print(WIFI_MON, "%s:%d hey after freeing ipstat:%d stamap count:%d \r\n", __func__, __LINE__,ipstat,hash_map_count(sta_map));
+    sta_map_count = (int)hash_map_count(sta_map);
+    if (ipstat <= sta_map_count) {
+        wifi_util_dbg_print(WIFI_MON, "%s:%d ipstat:%d less than or equal to stamap count:%d are  \r\n", __func__, __LINE__,ipstat,sta_map_count);
         return RETURN_OK;
     }
-    if (ipstat == (int)hash_map_count(sta_map)) {
-        wifi_util_dbg_print(WIFI_MON, "%s:%d hey ipstat:%d stamap count:%d are equal \r\n", __func__, __LINE__,ipstat,hash_map_count(sta_map));
-        return RETURN_OK;
-    }*/
     sta = (interop_data_t *)hash_map_get(sta_map, mac_str);
     if (sta == NULL) {
         sta = create_interop_sta_data_hash_map(sta_map, frame->sa, frame->da);
+        wifi_util_dbg_print(WIFI_MON, "%s:%d created STA MAC:%s count:%d \n", __func__, __LINE__, str,sta_map_count);
         if (sta == NULL) {
-	     wifi_util_error_print(WIFI_MON, "%s:%d sta is showing null even after created \r\n", __func__, __LINE__); 
+	     wifi_util_error_print(WIFI_MON, "%s:%d sta is null as creation of station is failed and returning null \r\n", __func__, __LINE__); 
             return RETURN_ERR;
         }
     }
-    wifi_util_dbg_print(WIFI_MON, "%s:%d STA MAC:%s count:%d \n", __func__, __LINE__, str,hash_map_count(sta_map));
     return RETURN_OK;
 }
-
-
-/*void extract_first_param(const char *message, char *first_param, char *rest_params) {
-    char message_copy[256];
-    wifi_util_dbg_print(WIFI_MON, "%s:%d start \n", __func__, __LINE__);
-    strncpy(message_copy, message, sizeof(message_copy));
-    message_copy[sizeof(message_copy) - 1] = '\0';   
-    char *token = strtok(message_copy, ",");
-    if (token != NULL) {
-        wifi_util_dbg_print(WIFI_MON, "%s:%d start0 \n", __func__, __LINE__);
-        strncpy(first_param, token, 256);
-        first_param[255] = '\0';
-        char *rest = strtok(NULL, "");
-        if (rest != NULL) {
-	    wifi_util_dbg_print(WIFI_MON, "%s:%d start1 \n", __func__, __LINE__);
-            strncpy(rest_params, rest, 256);
-            rest_params[255] = '\0'; 
-        } else {
-            wifi_util_dbg_print(WIFI_MON, "%s:%d start2 \n", __func__, __LINE__);
-            rest_params[0] = '\0';
-        }
-    } else {
-        wifi_util_dbg_print(WIFI_MON, "%s:%d start3 \n", __func__, __LINE__);
-        first_param[0] = '\0';
-        rest_params[0] = '\0';
-    }
-    wifi_util_dbg_print(WIFI_MON, "%s:%d exit \n", __func__, __LINE__);
-}*/
-
-
-
-/*void print_all_messages(message_data_t *msg_data) {
-    for (int i = 0; i < msg_data->msg_count; i++) {
-        wifi_util_dbg_print(WIFI_MON, "%s:%d start \n", __func__, __LINE__);
-        wifi_util_dbg_print(WIFI_MON, "print_all_messages Harsha Message:%s count:%d\n", msg_data->messages[i],msg_data->repeated_counts[i]);
-	//wifi_util_dbg_print(WIFI_MON, " Count:%d \n",msg_data->repeated_counts[i]);
-        char buff[2048];
-        char tmp[128];
-        get_formatted_time(tmp);
-	snprintf(buff, 2048, "%s:%s:%d\n", tmp,msg_data->messages[i],msg_data->repeated_counts[i]);
-        wifi_util_dbg_print(WIFI_MON, "%s:%d writing to a file \n", __func__, __LINE__);
-	write_to_file(wifi_health_log,buff);
-        char first_param[256];
-        char rest_params[256];
-        wifi_util_dbg_print(WIFI_MON, "%s:%d written \n", __func__, __LINE__);
-        extract_first_param(msg_data->messages[i], first_param, rest_params);
-        wifi_util_dbg_print(WIFI_MON, "%s:%d extracted first param,second params \n", __func__, __LINE__);
-        char second_param[512];
-        snprintf(second_param, sizeof(second_param), "%s,%d", rest_params, msg_data->repeated_counts[i]);
-        wifi_util_dbg_print(WIFI_MON, "%s:%d started sending t2 event \n", __func__, __LINE__);
-        get_stubs_descriptor()->t2_event_s_fn(first_param, second_param);
-        wifi_util_dbg_print(WIFI_MON, "%s:%d exit \n", __func__, __LINE__);
-    }
-}*/
 
 void telemetry_event_code_count(interop_data_t *sta1,int vapindex, char *mac, char *ap) {
     char telemetry_buff[128] = {0};
@@ -561,7 +483,6 @@ void telemetry_event_code_count(interop_data_t *sta1,int vapindex, char *mac, ch
     char buff[1024];
     char tmp[128];
     if (!mac) {
-        wifi_util_dbg_print(WIFI_MON, "%s:%d start \n", __func__, __LINE__);
         wifi_util_info_print(WIFI_MON, "Error: MAC address is NULL\n");
         return;
     }
@@ -569,141 +490,41 @@ void telemetry_event_code_count(interop_data_t *sta1,int vapindex, char *mac, ch
     memset(telemetry_buff, 0, sizeof(telemetry_buff));
     memset(telemetry_val, 0, sizeof(telemetry_val));
     memset(telemetry_buff_grep, 0, sizeof(telemetry_buff_grep));
-    //1,2,3,9,14,15,20,23,49
-    //1,16,30,31,43,53
     snprintf(telemetry_buff, sizeof(telemetry_buff), "REASON_STATUS_COUNT");
     snprintf(telemetry_val, sizeof(telemetry_val),
              "%d:Client:%s,AP:%s,Status_codes:1:%d,16:%d,30:%d,31:%d,43:%d,53:%d,Reason_codes:1:%d,2:%d,3:%d,9:%d,14:%d,15:%d,20:%d,23:%d,49:%d\nREASON_STATUS_COUNT:%d:AP:%s,Client:%s,Status_codes:1:%d,16:%d,30:%d,31:%d,43:%d,53:%d,Reason_codes:1:%d,2:%d,3:%d,9:%d,14:%d,15:%d,20:%d,23:%d,49:%d ", vapindex+1, mac, ap, sta1->sta_status_counts[0], sta1->sta_status_counts[1], sta1->sta_status_counts[2], sta1->sta_status_counts[3],sta1->sta_status_counts[4], sta1->sta_status_counts[5],sta1->sta_reason_counts[0],sta1->sta_reason_counts[1],sta1->sta_reason_counts[2],sta1->sta_reason_counts[3],sta1->sta_reason_counts[4],sta1->sta_reason_counts[5],sta1->sta_reason_counts[6],sta1->sta_reason_counts[7],sta1->sta_reason_counts[8],vapindex+1, ap, mac, sta1->ap_status_counts[0], sta1->ap_status_counts[1], sta1->ap_status_counts[2], sta1->ap_status_counts[3],sta1->ap_status_counts[4], sta1->ap_status_counts[5],sta1->ap_reason_counts[0],sta1->ap_reason_counts[1],sta1->ap_reason_counts[2],sta1->ap_reason_counts[3],sta1->ap_reason_counts[4],sta1->ap_reason_counts[5],sta1->ap_reason_counts[6],sta1->ap_reason_counts[7],sta1->ap_reason_counts[8]);
     strncpy(telemetry_buff_grep, telemetry_buff, sizeof(telemetry_buff_grep) - 1);
     telemetry_buff_grep[sizeof(telemetry_buff_grep) - 1] = '\0';
-    wifi_util_info_print(WIFI_MON, "%s:%s\n", telemetry_buff_grep, telemetry_val);
+    wifi_util_dbg_print(WIFI_MON, "%s:%s\n", telemetry_buff_grep, telemetry_val);
     get_formatted_time(tmp);
     snprintf(buff, 1024, "%s:%s:%s\n", tmp, telemetry_buff_grep, telemetry_val);
-    wifi_util_dbg_print(WIFI_MON, "%s:%d writing to a file \n", __func__, __LINE__);
     write_to_file(wifi_health_log, buff);
-    wifi_util_dbg_print(WIFI_MON, "%s:%d started event funct \n", __func__, __LINE__);
     get_stubs_descriptor()->t2_event_s_fn(telemetry_buff, telemetry_val);
-    wifi_util_dbg_print(WIFI_MON, "%s:%d exit \n", __func__, __LINE__);
 }
 
-/*void print_all_messages(message_data_t *msg_data) {
-
-    if (msg_data == NULL || msg_data->messages == NULL || msg_data->repeated_counts == NULL) {
-        wifi_util_error_print(WIFI_MON, "%s:%d msg_data or its members are NULL\r\n", __func__, __LINE__);
-        return;
-    }
-
-    for (int i = 0; i < msg_data->msg_count; i++) {
-        if (msg_data->messages[i] == NULL) {
-            wifi_util_error_print(WIFI_MON, "%s:%d message at index %d is NULL\r\n", __func__, __LINE__, i);
-            continue;
-        }
-
-        wifi_util_dbg_print(WIFI_MON, "%s:%d start \n", __func__, __LINE__);
-        wifi_util_dbg_print(WIFI_MON, "print_all_messages Harsha Message:%s count:%d\n", msg_data->messages[i], msg_data->repeated_counts[i]);
-
-        char buff[1024];
-        char tmp[128];
-        get_formatted_time(tmp);
-        snprintf(buff, 1024, "%s:%s:%d\n", tmp, msg_data->messages[i], msg_data->repeated_counts[i]);
-
-        wifi_util_dbg_print(WIFI_MON, "%s:%d writing to a file \n", __func__, __LINE__);
-        write_to_file(wifi_health_log, buff);
-
-        char first_param[256];
-        char rest_params[256];
-        wifi_util_dbg_print(WIFI_MON, "%s:%d written \n", __func__, __LINE__);
-        extract_first_param(msg_data->messages[i], first_param, rest_params);
-
-        wifi_util_dbg_print(WIFI_MON, "%s:%d extracted first param,second params \n", __func__, __LINE__);
-        char second_param[512];
-        snprintf(second_param, sizeof(second_param), "%s,%d", rest_params, msg_data->repeated_counts[i]);
-
-        wifi_util_dbg_print(WIFI_MON, "%s:%d started sending t2 event \n", __func__, __LINE__);
-        get_stubs_descriptor()->t2_event_s_fn(first_param, second_param);
-        wifi_util_dbg_print(WIFI_MON, "%s:%d exit \n", __func__, __LINE__);
-    }
-}
-
-void clear_all_messages(message_data_t *msg_data) {
-    if (msg_data == NULL) {
-        wifi_util_error_print(WIFI_MON, "%s:%d msg_data is NULL\r\n", __func__, __LINE__);
-        return;
-    }
-
-    if (msg_data->messages != NULL) {
-        for (int i = 0; i < msg_data->msg_count; i++) {
-            if (msg_data->messages[i] != NULL) {
-                free(msg_data->messages[i]); // Free each message string
-            }
-        }
-        free(msg_data->messages); // Free the messages array
-        msg_data->messages = NULL;
-    }
-
-    if (msg_data->repeated_counts != NULL) {
-        free(msg_data->repeated_counts); // Free the repeated counts array
-        msg_data->repeated_counts = NULL;
-    }
-    msg_data->msg_count = 0;
-    msg_data->msg_capacity = 0;
-}*/
-
-
-int update_interop_sta_data(unsigned int vap_index, int process) {
+int update_interop_sta_data(unsigned int vap_index) {
 
     hash_map_t *sta_map;
     interop_data_t *sta,*tmpsta;
     mac_addr_str_t mac_str = { 0 };
     mac_addr_str_t mac_ap_str = { 0 };
-    int ipstat;
-    bool ipenable;
-    wifi_util_dbg_print(WIFI_MON, "%s:%d start \n", __func__, __LINE__);
     sta_map = get_interop_sta_data_map(vap_index);
     int vapindex = (int)vap_index;
-    wifi_util_dbg_print(WIFI_MON, "%s:%d start details for vap_index:%d\r\n", __func__, __LINE__, vapindex);
     if (sta_map == NULL) {
         wifi_util_error_print(WIFI_MON, "%s:%d sta_data map not found for vap_index:%d\r\n", __func__, __LINE__, vapindex);
         return RETURN_ERR;
     }
-    wifi_util_dbg_print(WIFI_MON, "%s:%d started hashmap count :%d  \n", __func__, __LINE__,hash_map_count(sta_map));
     sta = hash_map_get_first(sta_map);
-    wifi_front_haul_bss_t *vap_bss_info = Get_wifi_object_bss_parameter(vapindex);
-    if (vap_bss_info == NULL) {
-	  wifi_util_dbg_print(WIFI_MON, "%s:%d vap_bss_info is null \r\n", __func__, __LINE__);
-          return RETURN_ERR;
-    }
-    ipstat = vap_bss_info->inum_sta;
-    ipenable = vap_bss_info->interop_ctrl;
-    wifi_util_dbg_print(WIFI_MON, "%s:%d Ipstat:%d ipenable:%d ipstat:%d,ipenable:%d \r\n", __func__, __LINE__,vap_bss_info->inum_sta,vap_bss_info->interop_ctrl,ipstat,ipenable);
-    wifi_util_dbg_print(WIFI_MON, "%s:%d started hashmap count :%d  \n", __func__, __LINE__,hash_map_count(sta_map));
     while (sta != NULL) {
-        wifi_util_dbg_print(WIFI_MON, "%s:%d started0 hashmap count :%d  \n", __func__, __LINE__,hash_map_count(sta_map));
-        /*if (((int)hash_map_count(sta_map) == ipstat) && process) {
-            wifi_util_dbg_print(WIFI_MON, "%s:%d hey both are equal Ipstat:%d ipenable:%d ipstat:%d,ipenable:%d \r\n", __func__, __LINE__,vap_bss_info->inum_sta,vap_bss_info->interop_ctrl,ipstat,ipenable);
-            return RETURN_OK;
-	}*/
         char *sta_mac_str = to_mac_str(sta->sta_mac, mac_str);
         char *ap_mac_str = to_mac_str(sta->ap_mac, mac_ap_str);
-        wifi_util_dbg_print(WIFI_MON, "%s:%d start1 \n", __func__, __LINE__);
-        //print_all_messages(&sta->message_data);
         telemetry_event_code_count(sta, vapindex, sta_mac_str, ap_mac_str);
-        wifi_util_dbg_print(WIFI_MON, "%s:%d start2 \n", __func__, __LINE__);
-        //clear_all_messages(&sta->message_data);
-        wifi_util_dbg_print(WIFI_MON, "%s:%d start3 \n", __func__, __LINE__);
-	wifi_util_dbg_print(WIFI_MON, "%s:%d freed STA MAC:%s \n", __func__, __LINE__, sta_mac_str);
 	sta = hash_map_get_next(sta_map, sta);
-        wifi_util_dbg_print(WIFI_MON, "%s:%d start4 \n", __func__, __LINE__);
 	tmpsta=hash_map_remove(sta_map,mac_str);
-        wifi_util_dbg_print(WIFI_MON, "%s:%d start5 \n", __func__, __LINE__);
 	if(tmpsta!= NULL) {
-            wifi_util_dbg_print(WIFI_MON, "%s:%d start6 \n", __func__, __LINE__);
 	    free(tmpsta);
-            wifi_util_dbg_print(WIFI_MON, "%s:%d start7 \n", __func__, __LINE__);
 	}
-        wifi_util_dbg_print(WIFI_MON, "%s:%d start8 \n", __func__, __LINE__);
     }
-    wifi_util_dbg_print(WIFI_MON, "%s:%d stop details for vap_index:%d\r\n", __func__, __LINE__, vapindex);
     return RETURN_OK;
 }
 
@@ -711,21 +532,17 @@ void update_interop_sta_all_vap_data_entry(void) {
 
     unsigned int index, vap_index;
     wifi_mgr_t *mgr = get_wifimgr_obj();
-    wifi_util_dbg_print(WIFI_MON, "%s:%d start \n", __func__, __LINE__);
     for (index = 0; index < getTotalNumberVAPs(); index++) {
         vap_index = VAP_INDEX(mgr->hal_cap, index);
 	if (isVapPrivate(vap_index) || isVapHotspotSecure5g(vap_index) || isVapHotspotSecure6g(vap_index) || isVapHotspotOpen5g(vap_index) || isVapHotspotOpen6g(vap_index)) {
-            update_interop_sta_data(vap_index,0);
+            update_interop_sta_data(vap_index);
 	}
     }
-    wifi_util_dbg_print(WIFI_MON, "%s:%d exit \n", __func__, __LINE__);
 }
 
 static int reset_interop_sta_data(void *arg) {
 
-    wifi_util_dbg_print(WIFI_MON, "%s:%d start \n", __func__, __LINE__);
     update_interop_sta_all_vap_data_entry();
-    wifi_util_dbg_print(WIFI_MON, "%s:%d exit \n", __func__, __LINE__);
     return TIMER_TASK_COMPLETE;
 }
 
@@ -2813,316 +2630,6 @@ bool active_sta_connection_status(int ap_index, char *mac)
     return true;
 }
 
-
-/*int count_stat(hash_map_t *map) { // need modifications later it's just a skeleton
-    int indexes[] = {1, 2, 21, 5, 6, 9, 10};
-    int size = sizeof(indexes) / sizeof(indexes[0]);
-    int sum = 0;
-    for (int i = 0; i < size; i++) {
-        int count = hash_map_count(indexes[i]);
-        wifi_util_dbg_print(WIFI_MON, "%s:%d: Sum of all counts: %d for index:%d \n", __func__,
-	__LINE__, count, ap_index);
-        sum += count;
-    }
-     wifi_util_dbg_print(WIFI_MON, "%s:%d: Sum of all counts: %d\n", __func__,
-     __LINE__, sum);
-
-    return 0;
-}*/
-
-/*ReasonDetails reason_details[] = {
-    [AWLAN_REASON_UNSPECIFIED]                = {"WLAN_REASON_UNSPECIFIED", "WLAN_REASON_UNSPECIFIED"},
-    [AWLAN_REASON_PREV_AUTH_NOT_VALID]        = {"WLAN_REASON_PREV_AUTH_NOT_VALID", "WLAN_REASON_PREV_AUTH_NOT_VALID"},
-    [AWLAN_REASON_DEAUTH_LEAVING]             = {"WLAN_REASON_DEAUTH_LEAVING", "WLAN_REASON_DEAUTH_LEAVING"},
-    [AWLAN_REASON_DISASSOC_DUE_TO_INACTIVITY] = {"WLAN_REASON_DISASSOC_DUE_TO_INACTIVITY", "WLAN_REASON_DISASSOC_DUE_TO_INACTIVITY"},
-    [AWLAN_REASON_DISASSOC_AP_BUSY] = {"WLAN_REASON_DISASSOC_AP_BUSY", "WLAN_REASON_DISASSOC_AP_BUSY"},
-    [AWLAN_REASON_CLASS2_FRAME_FROM_NONAUTH_STA] = {"WLAN_REASON_CLASS2_FRAME_FROM_NONAUTH_STA", "WLAN_REASON_CLASS2_FRAME_FROM_NONAUTH_STA"},
-    [AWLAN_REASON_CLASS3_FRAME_FROM_NONASSOC_STA] = {"WLAN_REASON_CLASS3_FRAME_FROM_NONASSOC_STA", "WLAN_REASON_CLASS3_FRAME_FROM_NONASSOC_STA"},
-    [AWLAN_REASON_DISASSOC_STA_HAS_LEFT] = {"WLAN_REASON_DISASSOC_STA_HAS_LEFT", "WLAN_REASON_DISASSOC_STA_HAS_LEFT"},
-    [AWLAN_REASON_STA_REQ_ASSOC_WITHOUT_AUTH] = {"WLAN_REASON_STA_REQ_ASSOC_WITHOUT_AUTH", "WLAN_REASON_STA_REQ_ASSOC_WITHOUT_AUTH"},
-    [AWLAN_REASON_PWR_CAPABILITY_NOT_VALID] = {"WLAN_REASON_PWR_CAPABILITY_NOT_VALID", "WLAN_REASON_PWR_CAPABILITY_NOT_VALID"},
-    [AWLAN_REASON_SUPPORTED_CHANNEL_NOT_VALID] = {"WLAN_REASON_SUPPORTED_CHANNEL_NOT_VALID", "WLAN_REASON_SUPPORTED_CHANNEL_NOT_VALID"},
-    [AWLAN_REASON_BSS_TRANSITION_DISASSOC] = {"WLAN_REASON_BSS_TRANSITION_DISASSOC", "WLAN_REASON_BSS_TRANSITION_DISASSOC"},
-    [AWLAN_REASON_INVALID_IE] = {"WLAN_REASON_INVALID_IE", "WLAN_REASON_INVALID_IE"},
-    [AWLAN_REASON_MICHAEL_MIC_FAILURE] = {"WLAN_REASON_MICHAEL_MIC_FAILURE", "WLAN_REASON_MICHAEL_MIC_FAILURE"},
-    [AWLAN_REASON_4WAY_HANDSHAKE_TIMEOUT] = {"WLAN_REASON_4WAY_HANDSHAKE_TIMEOUT", "WLAN_REASON_4WAY_HANDSHAKE_TIMEOUT"},
-    [AWLAN_REASON_GROUP_KEY_UPDATE_TIMEOUT] = {"WLAN_REASON_GROUP_KEY_UPDATE_TIMEOUT", "WLAN_REASON_GROUP_KEY_UPDATE_TIMEOUT"},
-    [AWLAN_REASON_IE_IN_4WAY_DIFFERS] = {"WLAN_REASON_IE_IN_4WAY_DIFFERS", "WLAN_REASON_IE_IN_4WAY_DIFFERS"},
-    [AWLAN_REASON_GROUP_CIPHER_NOT_VALID] = {"WLAN_REASON_GROUP_CIPHER_NOT_VALID", "WLAN_REASON_GROUP_CIPHER_NOT_VALID"},
-    [AWLAN_REASON_PAIRWISE_CIPHER_NOT_VALID] = {"WLAN_REASON_PAIRWISE_CIPHER_NOT_VALID", "WLAN_REASON_PAIRWISE_CIPHER_NOT_VALID"},
-    [AWLAN_REASON_AKMP_NOT_VALID] = {"WLAN_REASON_AKMP_NOT_VALID", "WLAN_REASON_AKMP_NOT_VALID"},
-    [AWLAN_REASON_UNSUPPORTED_RSN_IE_VERSION] = {"WLAN_REASON_UNSUPPORTED_RSN_IE_VERSION", "WLAN_REASON_UNSUPPORTED_RSN_IE_VERSION"},
-    [AWLAN_REASON_INVALID_RSN_IE_CAPAB] = {"WLAN_REASON_INVALID_RSN_IE_CAPAB", "WLAN_REASON_INVALID_RSN_IE_CAPAB"},
-    [AWLAN_REASON_IEEE_802_1X_AUTH_FAILED] = {"WLAN_REASON_IEEE_802_1X_AUTH_FAILED", "WLAN_REASON_IEEE_802_1X_AUTH_FAILED"},
-    [AWLAN_REASON_CIPHER_SUITE_REJECTED] = {"WLAN_REASON_CIPHER_SUITE_REJECTED", "WLAN_REASON_CIPHER_SUITE_REJECTED"},
-    [AWLAN_REASON_TDLS_TEARDOWN_UNREACHABLE] = {"WLAN_REASON_TDLS_TEARDOWN_UNREACHABLE", "WLAN_REASON_TDLS_TEARDOWN_UNREACHABLE"},
-    [AWLAN_REASON_TDLS_TEARDOWN_UNSPECIFIED] = {"WLAN_REASON_TDLS_TEARDOWN_UNSPECIFIED", "WLAN_REASON_TDLS_TEARDOWN_UNSPECIFIED"},
-    [AWLAN_REASON_SSP_REQUESTED_DISASSOC] = {"WLAN_REASON_SSP_REQUESTED_DISASSOC", "WLAN_REASON_SSP_REQUESTED_DISASSOC"},
-    [AWLAN_REASON_NO_SSP_ROAMING_AGREEMENT] = {"WLAN_REASON_NO_SSP_ROAMING_AGREEMENT", "WLAN_REASON_NO_SSP_ROAMING_AGREEMENT"},
-    [AWLAN_REASON_BAD_CIPHER_OR_AKM] = {"WLAN_REASON_BAD_CIPHER_OR_AKM", "WLAN_REASON_BAD_CIPHER_OR_AKM"},
-    [AWLAN_REASON_NOT_AUTHORIZED_THIS_LOCATION] = {"WLAN_REASON_NOT_AUTHORIZED_THIS_LOCATION", "WLAN_REASON_NOT_AUTHORIZED_THIS_LOCATION"},
-    [AWLAN_REASON_SERVICE_CHANGE_PRECLUDES_TS] = {"WLAN_REASON_SERVICE_CHANGE_PRECLUDES_TS", "WLAN_REASON_SERVICE_CHANGE_PRECLUDES_TS"},
-    [AWLAN_REASON_UNSPECIFIED_QOS_REASON] = {"WLAN_REASON_UNSPECIFIED_QOS_REASON", "WLAN_REASON_UNSPECIFIED_QOS_REASON"},
-    [AWLAN_REASON_NOT_ENOUGH_BANDWIDTH] = {"WLAN_REASON_NOT_ENOUGH_BANDWIDTH", "WLAN_REASON_NOT_ENOUGH_BANDWIDTH"},
-    [AWLAN_REASON_DISASSOC_LOW_ACK] = {"WLAN_REASON_DISASSOC_LOW_ACK", "WLAN_REASON_DISASSOC_LOW_ACK"},
-    [AWLAN_REASON_EXCEEDED_TXOP] = {"WLAN_REASON_EXCEEDED_TXOP", "WLAN_REASON_EXCEEDED_TXOP"},
-    [AWLAN_REASON_STA_LEAVING] = {"WLAN_REASON_STA_LEAVING", "WLAN_REASON_STA_LEAVING"},
-    [AWLAN_REASON_END_TS_BA_DLS] = {"WLAN_REASON_END_TS_BA_DLS", "WLAN_REASON_END_TS_BA_DLS"},
-    [AWLAN_REASON_UNKNOWN_TS_BA] = {"WLAN_REASON_UNKNOWN_TS_BA", "WLAN_REASON_UNKNOWN_TS_BA"},
-    [AWLAN_REASON_TIMEOUT] = {"WLAN_REASON_TIMEOUT", "WLAN_REASON_TIMEOUT"},
-    [AWLAN_REASON_PEERKEY_MISMATCH] = {"WLAN_REASON_PEERKEY_MISMATCH", "WLAN_REASON_PEERKEY_MISMATCH"},
-    [AWLAN_REASON_AUTHORIZED_ACCESS_LIMIT_REACHED] = {"WLAN_REASON_AUTHORIZED_ACCESS_LIMIT_REACHED", "WLAN_REASON_AUTHORIZED_ACCESS_LIMIT_REACHED"},
-    [AWLAN_REASON_EXTERNAL_SERVICE_REQUIREMENTS] = {"WLAN_REASON_EXTERNAL_SERVICE_REQUIREMENTS", "WLAN_REASON_EXTERNAL_SERVICE_REQUIREMENTS"},
-    [AWLAN_REASON_INVALID_FT_ACTION_FRAME_COUNT] = {"WLAN_REASON_INVALID_FT_ACTION_FRAME_COUNT", "WLAN_REASON_INVALID_FT_ACTION_FRAME_COUNT"},
-    [AWLAN_REASON_INVALID_PMKID] = {"WLAN_REASON_INVALID_PMKID", "WLAN_REASON_INVALID_PMKID"},
-    [AWLAN_REASON_INVALID_MDE] = {"WLAN_REASON_INVALID_MDE", "WLAN_REASON_INVALID_MDE"},
-    [AWLAN_REASON_INVALID_FTE] = {"WLAN_REASON_INVALID_FTE", "WLAN_REASON_INVALID_FTE"},
-    [AWLAN_REASON_MESH_PEERING_CANCELLED] = {"WLAN_REASON_MESH_PEERING_CANCELLED", "WLAN_REASON_MESH_PEERING_CANCELLED"},
-    [AWLAN_REASON_MESH_MAX_PEERS] = {"WLAN_REASON_MESH_MAX_PEERS", "WLAN_REASON_MESH_MAX_PEERS"},
-    [AWLAN_REASON_MESH_CONFIG_POLICY_VIOLATION] = {"WLAN_REASON_MESH_CONFIG_POLICY_VIOLATION", "WLAN_REASON_MESH_CONFIG_POLICY_VIOLATION"},
-    [AWLAN_REASON_MESH_CLOSE_RCVD] = {"WLAN_REASON_MESH_CLOSE_RCVD", "WLAN_REASON_MESH_CLOSE_RCVD"},
-    [AWLAN_REASON_MESH_MAX_RETRIES] = {"WLAN_REASON_MESH_MAX_RETRIES", "WLAN_REASON_MESH_MAX_RETRIES"},
-    [AWLAN_REASON_MESH_CONFIRM_TIMEOUT] = {"WLAN_REASON_MESH_CONFIRM_TIMEOUT", "WLAN_REASON_MESH_CONFIRM_TIMEOUT"},
-    [AWLAN_REASON_MESH_INVALID_GTK] = {"WLAN_REASON_MESH_INVALID_GTK", "WLAN_REASON_MESH_INVALID_GTK"},
-    [AWLAN_REASON_MESH_INCONSISTENT_PARAMS] = {"WLAN_REASON_MESH_INCONSISTENT_PARAMS", "WLAN_REASON_MESH_INCONSISTENT_PARAMS"},
-    [AWLAN_REASON_MESH_INVALID_SECURITY_CAP] = {"WLAN_REASON_MESH_INVALID_SECURITY_CAP", "WLAN_REASON_MESH_INVALID_SECURITY_CAP"},
-    [AWLAN_REASON_MESH_PATH_ERROR_NO_PROXY_INFO] = {"WLAN_REASON_MESH_PATH_ERROR_NO_PROXY_INFO", "WLAN_REASON_MESH_PATH_ERROR_NO_PROXY_INFO"},
-    [AWLAN_REASON_MESH_PATH_ERROR_NO_FORWARDING_INFO] = {"WLAN_REASON_MESH_PATH_ERROR_NO_FORWARDING_INFO", "WLAN_REASON_MESH_PATH_ERROR_NO_FORWARDING_INFO"},
-    [AWLAN_REASON_MESH_PATH_ERROR_DEST_UNREACHABLE] = {"WLAN_REASON_MESH_PATH_ERROR_DEST_UNREACHABLE", "WLAN_REASON_MESH_PATH_ERROR_DEST_UNREACHABLE"},
-    [AWLAN_REASON_MAC_ADDRESS_ALREADY_EXISTS_IN_MBSS] = {"WLAN_REASON_MAC_ADDRESS_ALREADY_EXISTS_IN_MBSS", "WLAN_REASON_MAC_ADDRESS_ALREADY_EXISTS_IN_MBSS"},
-    [AWLAN_REASON_MESH_CHANNEL_SWITCH_REGULATORY_REQ] = {"WLAN_REASON_MESH_CHANNEL_SWITCH_REGULATORY_REQ", "WLAN_REASON_MESH_CHANNEL_SWITCH_REGULATORY_REQ"},
-    [AWLAN_REASON_MESH_CHANNEL_SWITCH_UNSPECIFIED] = {"WLAN_REASON_MESH_CHANNEL_SWITCH_UNSPECIFIED", "WLAN_REASON_MESH_CHANNEL_SWITCH_UNSPECIFIED"}
-};*/
-
-/*const char *get_status_string(wlan_status_code_t status) {
-    switch (status) {
-        case AWLAN_STATUS_SUCCESS: return "WLAN_STATUS_SUCCESS";
-        case AWLAN_STATUS_UNSPECIFIED_FAILURE: return "WLAN_STATUS_UNSPECIFIED_FAILURE";
-        case AWLAN_STATUS_TDLS_WAKEUP_ALTERNATE: return "WLAN_STATUS_TDLS_WAKEUP_ALTERNATE";
-        case AWLAN_STATUS_TDLS_WAKEUP_REJECT: return "WLAN_STATUS_TDLS_WAKEUP_REJECT";
-        case AWLAN_STATUS_SECURITY_DISABLED: return "WLAN_STATUS_SECURITY_DISABLED";
-        case AWLAN_STATUS_UNACCEPTABLE_LIFETIME: return "WLAN_STATUS_UNACCEPTABLE_LIFETIME";
-        case AWLAN_STATUS_NOT_IN_SAME_BSS: return "WLAN_STATUS_NOT_IN_SAME_BSS";
-        case AWLAN_STATUS_CAPS_UNSUPPORTED: return "WLAN_STATUS_CAPS_UNSUPPORTED";
-        case AWLAN_STATUS_REASSOC_NO_ASSOC: return "WLAN_STATUS_REASSOC_NO_ASSOC";
-        case AWLAN_STATUS_ASSOC_DENIED_UNSPEC: return "WLAN_STATUS_ASSOC_DENIED_UNSPEC";
-        case AWLAN_STATUS_NOT_SUPPORTED_AUTH_ALG: return "WLAN_STATUS_NOT_SUPPORTED_AUTH_ALG";
-        case AWLAN_STATUS_UNKNOWN_AUTH_TRANSACTION: return "WLAN_STATUS_UNKNOWN_AUTH_TRANSACTION";
-        case AWLAN_STATUS_CHALLENGE_FAIL: return "WLAN_STATUS_CHALLENGE_FAIL";
-        case AWLAN_STATUS_AUTH_TIMEOUT: return "WLAN_STATUS_AUTH_TIMEOUT";
-        case AWLAN_STATUS_AP_UNABLE_TO_HANDLE_NEW_STA: return "WLAN_STATUS_AP_UNABLE_TO_HANDLE_NEW_STA";
-        case AWLAN_STATUS_ASSOC_DENIED_RATES: return "WLAN_STATUS_ASSOC_DENIED_RATES";
-        case AWLAN_STATUS_ASSOC_DENIED_NOSHORT: return "WLAN_STATUS_ASSOC_DENIED_NOSHORT";
-        case AWLAN_STATUS_SPEC_MGMT_REQUIRED: return "WLAN_STATUS_SPEC_MGMT_REQUIRED";
-        case AWLAN_STATUS_PWR_CAPABILITY_NOT_VALID: return "WLAN_STATUS_PWR_CAPABILITY_NOT_VALID";
-        case AWLAN_STATUS_SUPPORTED_CHANNEL_NOT_VALID: return "WLAN_STATUS_SUPPORTED_CHANNEL_NOT_VALID";
-        case AWLAN_STATUS_ASSOC_DENIED_NO_SHORT_SLOT_TIME: return "WLAN_STATUS_ASSOC_DENIED_NO_SHORT_SLOT_TIME";
-        case AWLAN_STATUS_ASSOC_DENIED_NO_HT: return "WLAN_STATUS_ASSOC_DENIED_NO_HT";
-        case AWLAN_STATUS_R0KH_UNREACHABLE: return "WLAN_STATUS_R0KH_UNREACHABLE";
-        case AWLAN_STATUS_ASSOC_DENIED_NO_PCO: return "WLAN_STATUS_ASSOC_DENIED_NO_PCO";
-        case AWLAN_STATUS_ASSOC_REJECTED_TEMPORARILY: return "WLAN_STATUS_ASSOC_REJECTED_TEMPORARILY";
-        case AWLAN_STATUS_ROBUST_MGMT_FRAME_POLICY_VIOLATION: return "WLAN_STATUS_ROBUST_MGMT_FRAME_POLICY_VIOLATION";
-        case AWLAN_STATUS_UNSPECIFIED_QOS_FAILURE: return "WLAN_STATUS_UNSPECIFIED_QOS_FAILURE";
-        case AWLAN_STATUS_DENIED_INSUFFICIENT_BANDWIDTH: return "WLAN_STATUS_DENIED_INSUFFICIENT_BANDWIDTH";
-        case AWLAN_STATUS_DENIED_POOR_CHANNEL_CONDITIONS: return "WLAN_STATUS_DENIED_POOR_CHANNEL_CONDITIONS";
-        case AWLAN_STATUS_DENIED_QOS_NOT_SUPPORTED: return "WLAN_STATUS_DENIED_QOS_NOT_SUPPORTED";
-        case AWLAN_STATUS_REQUEST_DECLINED: return "WLAN_STATUS_REQUEST_DECLINED";
-        case AWLAN_STATUS_INVALID_PARAMETERS: return "WLAN_STATUS_INVALID_PARAMETERS";
-        case AWLAN_STATUS_REJECTED_WITH_SUGGESTED_CHANGES: return "WLAN_STATUS_REJECTED_WITH_SUGGESTED_CHANGES";
-        case AWLAN_STATUS_INVALID_IE: return "WLAN_STATUS_INVALID_IE";
-        case AWLAN_STATUS_GROUP_CIPHER_NOT_VALID: return "WLAN_STATUS_GROUP_CIPHER_NOT_VALID";
-        case AWLAN_STATUS_PAIRWISE_CIPHER_NOT_VALID: return "WLAN_STATUS_PAIRWISE_CIPHER_NOT_VALID";
-        case AWLAN_STATUS_AKMP_NOT_VALID: return "WLAN_STATUS_AKMP_NOT_VALID";
-        case AWLAN_STATUS_UNSUPPORTED_RSN_IE_VERSION: return "WLAN_STATUS_UNSUPPORTED_RSN_IE_VERSION";
-        case AWLAN_STATUS_INVALID_RSN_IE_CAPAB: return "WLAN_STATUS_INVALID_RSN_IE_CAPAB";
-        case AWLAN_STATUS_CIPHER_REJECTED_PER_POLICY: return "WLAN_STATUS_CIPHER_REJECTED_PER_POLICY";
-        case AWLAN_STATUS_TS_NOT_CREATED: return "WLAN_STATUS_TS_NOT_CREATED";
-        case AWLAN_STATUS_DIRECT_LINK_NOT_ALLOWED: return "WLAN_STATUS_DIRECT_LINK_NOT_ALLOWED";
-        case AWLAN_STATUS_DEST_STA_NOT_PRESENT: return "WLAN_STATUS_DEST_STA_NOT_PRESENT";
-        case AWLAN_STATUS_DEST_STA_NOT_QOS_STA: return "WLAN_STATUS_DEST_STA_NOT_QOS_STA";
-        case AWLAN_STATUS_ASSOC_DENIED_LISTEN_INT_TOO_LARGE: return "WLAN_STATUS_ASSOC_DENIED_LISTEN_INT_TOO_LARGE";
-        case AWLAN_STATUS_INVALID_FT_ACTION_FRAME_COUNT: return "WLAN_STATUS_INVALID_FT_ACTION_FRAME_COUNT";
-        case AWLAN_STATUS_INVALID_PMKID: return "WLAN_STATUS_INVALID_PMKID";
-        case AWLAN_STATUS_INVALID_MDIE: return "WLAN_STATUS_INVALID_MDIE";
-        case AWLAN_STATUS_INVALID_FTIE: return "WLAN_STATUS_INVALID_FTIE";
-        case AWLAN_STATUS_REQUESTED_TCLAS_NOT_SUPPORTED: return "WLAN_STATUS_REQUESTED_TCLAS_NOT_SUPPORTED";
-        case AWLAN_STATUS_INSUFFICIENT_TCLAS_PROCESSING_RESOURCES: return "WLAN_STATUS_INSUFFICIENT_TCLAS_PROCESSING_RESOURCES";
-        case AWLAN_STATUS_TRY_ANOTHER_BSS: return "WLAN_STATUS_TRY_ANOTHER_BSS";
-        case AWLAN_STATUS_GAS_ADV_PROTO_NOT_SUPPORTED: return "WLAN_STATUS_GAS_ADV_PROTO_NOT_SUPPORTED";
-        case AWLAN_STATUS_NO_OUTSTANDING_GAS_REQ: return "WLAN_STATUS_NO_OUTSTANDING_GAS_REQ";
-        case AWLAN_STATUS_GAS_RESP_NOT_RECEIVED: return "WLAN_STATUS_GAS_RESP_NOT_RECEIVED";
-        case AWLAN_STATUS_STA_TIMED_OUT_WAITING_FOR_GAS_RESP: return "WLAN_STATUS_STA_TIMED_OUT_WAITING_FOR_GAS_RESP";
-        case AWLAN_STATUS_GAS_RESP_LARGER_THAN_LIMIT: return "WLAN_STATUS_GAS_RESP_LARGER_THAN_LIMIT";
-        case AWLAN_STATUS_REQ_REFUSED_HOME: return "WLAN_STATUS_REQ_REFUSED_HOME";
-        case AWLAN_STATUS_ADV_SRV_UNREACHABLE: return "WLAN_STATUS_ADV_SRV_UNREACHABLE";
-        case AWLAN_STATUS_REQ_REFUSED_SSPN: return "WLAN_STATUS_REQ_REFUSED_SSPN";
-        case AWLAN_STATUS_REQ_REFUSED_UNAUTH_ACCESS: return "WLAN_STATUS_REQ_REFUSED_UNAUTH_ACCESS";
-        case AWLAN_STATUS_INVALID_RSNIE: return "WLAN_STATUS_INVALID_RSNIE";
-        case AWLAN_STATUS_U_APSD_COEX_NOT_SUPPORTED: return "WLAN_STATUS_U_APSD_COEX_NOT_SUPPORTED";
-        case AWLAN_STATUS_U_APSD_COEX_MODE_NOT_SUPPORTED: return "WLAN_STATUS_U_APSD_COEX_MODE_NOT_SUPPORTED";
-        case AWLAN_STATUS_BAD_INTERVAL_WITH_U_APSD_COEX: return "WLAN_STATUS_BAD_INTERVAL_WITH_U_APSD_COEX";
-        case AWLAN_STATUS_ANTI_CLOGGING_TOKEN_REQ: return "WLAN_STATUS_ANTI_CLOGGING_TOKEN_REQ";
-        case AWLAN_STATUS_FINITE_CYCLIC_GROUP_NOT_SUPPORTED: return "WLAN_STATUS_FINITE_CYCLIC_GROUP_NOT_SUPPORTED";
-        case AWLAN_STATUS_CANNOT_FIND_ALT_TBTT: return "WLAN_STATUS_CANNOT_FIND_ALT_TBTT";
-        case AWLAN_STATUS_TRANSMISSION_FAILURE: return "WLAN_STATUS_TRANSMISSION_FAILURE";
-        case AWLAN_STATUS_REQ_TCLAS_NOT_SUPPORTED: return "WLAN_STATUS_REQ_TCLAS_NOT_SUPPORTED";
-        case AWLAN_STATUS_TCLAS_RESOURCES_EXHAUSTED: return "WLAN_STATUS_TCLAS_RESOURCES_EXHAUSTED";
-        case AWLAN_STATUS_REJECTED_WITH_SUGGESTED_BSS_TRANSITION: return "WLAN_STATUS_REJECTED_WITH_SUGGESTED_BSS_TRANSITION";
-        case AWLAN_STATUS_REJECT_WITH_SCHEDULE: return "WLAN_STATUS_REJECT_WITH_SCHEDULE";
-        case AWLAN_STATUS_REJECT_NO_WAKEUP_SPECIFIED: return "WLAN_STATUS_REJECT_NO_WAKEUP_SPECIFIED";
-        case AWLAN_STATUS_SUCCESS_POWER_SAVE_MODE: return "WLAN_STATUS_SUCCESS_POWER_SAVE_MODE";
-        case AWLAN_STATUS_PENDING_ADMITTING_FST_SESSION: return "WLAN_STATUS_PENDING_ADMITTING_FST_SESSION";
-        case AWLAN_STATUS_PERFORMING_FST_NOW: return "WLAN_STATUS_PERFORMING_FST_NOW";
-        case AWLAN_STATUS_PENDING_GAP_IN_BA_WINDOW: return "WLAN_STATUS_PENDING_GAP_IN_BA_WINDOW";
-        case AWLAN_STATUS_REJECT_U_PID_SETTING: return "WLAN_STATUS_REJECT_U_PID_SETTING";
-        case AWLAN_STATUS_REFUSED_EXTERNAL_REASON: return "WLAN_STATUS_REFUSED_EXTERNAL_REASON";
-        case AWLAN_STATUS_REFUSED_AP_OUT_OF_MEMORY: return "WLAN_STATUS_REFUSED_AP_OUT_OF_MEMORY";
-        case AWLAN_STATUS_REJECTED_EMERGENCY_SERVICE_NOT_SUPPORTED: return "WLAN_STATUS_REJECTED_EMERGENCY_SERVICE_NOT_SUPPORTED";
-        case AWLAN_STATUS_QUERY_RESP_OUTSTANDING: return "WLAN_STATUS_QUERY_RESP_OUTSTANDING";
-        case AWLAN_STATUS_REJECT_DSE_BAND: return "WLAN_STATUS_REJECT_DSE_BAND";
-        case AWLAN_STATUS_TCLAS_PROCESSING_TERMINATED: return "WLAN_STATUS_TCLAS_PROCESSING_TERMINATED";
-        case AWLAN_STATUS_TS_SCHEDULE_CONFLICT: return "WLAN_STATUS_TS_SCHEDULE_CONFLICT";
-        case AWLAN_STATUS_DENIED_WITH_SUGGESTED_BAND_AND_CHANNEL: return "WLAN_STATUS_DENIED_WITH_SUGGESTED_BAND_AND_CHANNEL";
-        case AWLAN_STATUS_MCCAOP_RESERVATION_CONFLICT: return "WLAN_STATUS_MCCAOP_RESERVATION_CONFLICT";
-        case AWLAN_STATUS_MAF_LIMIT_EXCEEDED: return "WLAN_STATUS_MAF_LIMIT_EXCEEDED";
-        case AWLAN_STATUS_MCCA_TRACK_LIMIT_EXCEEDED: return "WLAN_STATUS_MCCA_TRACK_LIMIT_EXCEEDED";
-        case AWLAN_STATUS_DENIED_DUE_TO_SPECTRUM_MANAGEMENT: return "WLAN_STATUS_DENIED_DUE_TO_SPECTRUM_MANAGEMENT";
-        case AWLAN_STATUS_ASSOC_DENIED_NO_VHT: return "WLAN_STATUS_ASSOC_DENIED_NO_VHT";
-        case AWLAN_STATUS_ENABLEMENT_DENIED: return "WLAN_STATUS_ENABLEMENT_DENIED";
-        case AWLAN_STATUS_RESTRICTION_FROM_AUTHORIZED_GDB: return "WLAN_STATUS_RESTRICTION_FROM_AUTHORIZED_GDB";
-        case AWLAN_STATUS_AUTHORIZATION_DEENABLED: return "WLAN_STATUS_AUTHORIZATION_DEENABLED";
-        case AWLAN_STATUS_FILS_AUTHENTICATION_FAILURE: return "WLAN_STATUS_FILS_AUTHENTICATION_FAILURE";
-        case AWLAN_STATUS_UNKNOWN_AUTHENTICATION_SERVER: return "WLAN_STATUS_UNKNOWN_AUTHENTICATION_SERVER";
-        case AWLAN_STATUS_UNKNOWN_PASSWORD_IDENTIFIER: return "WLAN_STATUS_UNKNOWN_PASSWORD_IDENTIFIER";
-        case AWLAN_STATUS_DENIED_HE_NOT_SUPPORTED: return "WLAN_STATUS_DENIED_HE_NOT_SUPPORTED";
-        case AWLAN_STATUS_SAE_HASH_TO_ELEMENT: return "WLAN_STATUS_SAE_HASH_TO_ELEMENT";
-        case AWLAN_STATUS_SAE_PK: return "WLAN_STATUS_SAE_PK";
-        case AWLAN_STATUS_UNSPECIFIED_FAILURE: return "WLAN_STATUS_UNSPECIFIED_FAILURE";
-        case AWLAN_STATUS_AUTH_TIMEOUT: return "WLAN_STATUS_AUTH_TIMEOUT";
-        case AWLAN_STATUS_ASSOC_REJECTED_TEMPORARILY: return "WLAN_STATUS_ASSOC_REJECTED_TEMPORARILY";
-        case AWLAN_STATUS_ROBUST_MGMT_FRAME_POLICY_VIOLATION: return "WLAN_STATUS_ROBUST_MGMT_FRAME_POLICY_VIOLATION";
-        case AWLAN_STATUS_AKMP_NOT_VALID: return "WLAN_STATUS_AKMP_NOT_VALID";
-        case AWLAN_STATUS_INVALID_PMKID: return "WLAN_STATUS_INVALID_PMKID";
-        default: return "UNKNOWN_STATUS";
-    }
-}
-
-
-const char *get_marker_status_string(wlan_status_code_t status) {
-    switch (status) {
-        case AWLAN_STATUS_UNSPECIFIED_FAILURE: return "WLAN_INFO_1";
-        case AWLAN_STATUS_AUTH_TIMEOUT: return "WLAN_INFO_16";
-        case AWLAN_STATUS_ASSOC_REJECTED_TEMPORARILY: return "WLAN_INFO_30";
-        case AWLAN_STATUS_ROBUST_MGMT_FRAME_POLICY_VIOLATION: return "WLAN_INFO_31";
-        case AWLAN_STATUS_AKMP_NOT_VALID: return "WLAN_INFO_43";
-        case AWLAN_STATUS_INVALID_PMKID: return "WLAN_INFO_53";
-        default: return "WLAN_INFO_UNKNOWN";
-    }
-}
-
-const char *get_reason_string(WlanReasonCode reason) {
-    switch (reason) {
-        case AWLAN_REASON_UNSPECIFIED: return "WLAN_REASON_UNSPECIFIED";
-        case AWLAN_REASON_PREV_AUTH_NOT_VALID: return "WLAN_REASON_PREV_AUTH_NOT_VALID";
-        case AWLAN_REASON_DEAUTH_LEAVING: return "WLAN_REASON_DEAUTH_LEAVING";
-        case AWLAN_REASON_STA_REQ_ASSOC_WITHOUT_AUTH: return "WLAN_REASON_STA_REQ_ASSOC_WITHOUT_AUTH";
-        case AWLAN_REASON_MICHAEL_MIC_FAILURE: return "WLAN_REASON_MICHAEL_MIC_FAILURE ";
-        case AWLAN_REASON_4WAY_HANDSHAKE_TIMEOUT: return "WLAN_REASON_4WAY_HANDSHAKE_TIMEOUT";
-        case AWLAN_REASON_AKMP_NOT_VALID: return "WLAN_REASON_AKMP_NOT_VALID";
-        case AWLAN_REASON_IEEE_802_1X_AUTH_FAILED: return "WLAN_REASON_IEEE_802_1X_AUTH_FAILED";
-        case AWLAN_REASON_INVALID_PMKID: return "WLAN_REASON_INVALID_PMKID";
-        default: return "UNKNOWN_REASON";
-    }
-}
-const char *get_marker_reason_string(WlanReasonCode reason) {
-    switch (reason) {
-        case AWLAN_REASON_UNSPECIFIED: return "WLAN_INFO_1";
-        case AWLAN_REASON_PREV_AUTH_NOT_VALID: return "WLAN_INFO_2";
-        case AWLAN_REASON_DEAUTH_LEAVING: return "WLAN_INFO_3";
-        case AWLAN_REASON_STA_REQ_ASSOC_WITHOUT_AUTH: return "WLAN_INFO_9";
-        case AWLAN_REASON_MICHAEL_MIC_FAILURE: return "WLAN_INFO_14";
-        case AWLAN_REASON_4WAY_HANDSHAKE_TIMEOUT: return "WLAN_INFO_15";
-        case AWLAN_REASON_AKMP_NOT_VALID: return "WLAN_INFO_20";
-        case AWLAN_REASON_IEEE_802_1X_AUTH_FAILED: return "WLAN_INFO_23";
-        case AWLAN_REASON_INVALID_PMKID: return "WLAN_INFO_49";
-        default: return "WLAN_INFO_UNKNOWN";
-    }
-}
-
-const char *get_frame_type_string(wifi_mgmtFrameType_t frameType) {
-    switch (frameType) {
-        case WIFI_MGMT_FRAME_TYPE_DISASSOC:
-            return "1010 (Disassoc)";
-        case WIFI_MGMT_FRAME_TYPE_DEAUTH:
-            return "1100 (Deauth)";
-        case WIFI_MGMT_FRAME_TYPE_AUTH:
-            return "1011 (Auth)";
-	case WIFI_MGMT_FRAME_TYPE_AUTH_RSP:
-            return "1011 (Auth_Rsp)";
-        case WIFI_MGMT_FRAME_TYPE_ASSOC_RSP:
-            return "1 (Assoc)";
-        case WIFI_MGMT_FRAME_TYPE_REASSOC_RSP:
-            return "11 (Reassoc)";
-        default:
-            return "UNKNOWN";
-    }
-}
-
-int find_message_index(message_data_t *msg_data, const char *message) {
-    for (int i = 0; i < msg_data->msg_count; i++) {
-        if (strcmp(msg_data->messages[i], message) == 0) {
-            return i; // Return the index of the repeated message
-        }
-    }
-    return -1; // Message not found
-}
-
-int rate_limit_log(interop_data_t *data, const char *message) {
-    //time_t current_time = time(NULL);
-    message_data_t *msg_data = &data->message_data;
-    wifi_util_dbg_print(WIFI_MON, "%s:%d start \n", __func__, __LINE__);
-    int index = find_message_index(msg_data, message);
-    if (index != -1) {
-        msg_data->repeated_counts[index]++;
-        wifi_util_info_print(WIFI_MON, "%s:%d Message '%s' found at index %d, repeated count: %d \n",__func__, __LINE__, message, index, msg_data->repeated_counts[index]);
-        return 0;
-    }
-
-    // Resize the messages array if necessary
-    if (msg_data->msg_count == msg_data->msg_capacity) {
-        msg_data->msg_capacity = msg_data->msg_capacity == 0 ? 1 : msg_data->msg_capacity + 5;
-        char **new_messages = realloc(msg_data->messages, msg_data->msg_capacity * sizeof(char *));
-        int *new_counts = realloc(msg_data->repeated_counts, msg_data->msg_capacity * sizeof(int));
-        if (new_messages == NULL || new_counts == NULL) {
-            wifi_util_info_print(WIFI_MON, " %s:%d Failed to realloc memory",__func__, __LINE__);
-            if (new_messages != NULL) {
-                free(new_messages);
-            }
-            if (new_counts != NULL) {
-                free(new_counts);
-            }
-            return -1;
-        }
-        msg_data->messages = new_messages;
-        msg_data->repeated_counts = new_counts;
-        wifi_util_info_print(WIFI_MON, "%s:%d Resized messages array to capacity %d\n",__func__, __LINE__,msg_data->msg_capacity);
-    }
-// Add the new message to the array
-    size_t message_length = strlen(message) + 1;
-    char *new_message = malloc(message_length * sizeof(char));
-    if (new_message == NULL) {
-        wifi_util_info_print(WIFI_MON, "%s:%d Failed to malloc memory for new message",__func__, __LINE__);
-        return -1;
-    }
-    strncpy(new_message, message, message_length);
-    new_message[message_length - 1] = '\0';
-    msg_data->messages[msg_data->msg_count] = new_message;
-    msg_data->repeated_counts[msg_data->msg_count] = 1;
-    msg_data->msg_count++;
-    wifi_util_info_print(WIFI_MON, "%s:%d Added new message '%s' at index %d\n",__func__, __LINE__,message, msg_data->msg_count - 1);
-    return 0;
-}*/
-
 int increment_reason_count(interop_data_t *telemetry, WlanReasonCode code, int ap) {
     if (ap == 0) {
         switch (code) {
@@ -3149,11 +2656,11 @@ int increment_reason_count(interop_data_t *telemetry, WlanReasonCode code, int a
             case AWLAN_REASON_AKMP_NOT_VALID: telemetry->ap_reason_counts[6]++; break;
             case AWLAN_REASON_IEEE_802_1X_AUTH_FAILED: telemetry->ap_reason_counts[7]++; break;
             case AWLAN_REASON_INVALID_PMKID: telemetry->ap_reason_counts[8]++; break;
-            default: wifi_util_dbg_print(WIFI_MON, "start %s:%d unknown reason code for mac\n",__FUNCTION__,__LINE__); return -1;
+            default: wifi_util_dbg_print(WIFI_MON, "start %s:%d unknown reason code for ap \n",__FUNCTION__,__LINE__); return -1;
         }
     }
     else {
-        wifi_util_dbg_print(WIFI_MON, "start %s:%d it's not an ap or station mac \n",__FUNCTION__,__LINE__);
+        wifi_util_dbg_print(WIFI_MON, "%s:%d it's not an ap or station mac \n",__FUNCTION__,__LINE__);
         return -1;
     }
     return 0;
@@ -3168,7 +2675,7 @@ int increment_status_count(interop_data_t *telemetry, wlan_status_code_t code, i
             case AWLAN_STATUS_ROBUST_MGMT_FRAME_POLICY_VIOLATION: telemetry->sta_status_counts[3]++; break;
             case AWLAN_STATUS_AKMP_NOT_VALID: telemetry->sta_status_counts[4]++; break;
             case AWLAN_STATUS_INVALID_PMKID: telemetry->sta_status_counts[5]++; break;
-            default: wifi_util_dbg_print(WIFI_MON, "start %s:%d unknown status code \n",__FUNCTION__,__LINE__); return -1;
+            default: wifi_util_dbg_print(WIFI_MON, "start %s:%d unknown status code for station \n",__FUNCTION__,__LINE__); return -1;
         }
     }
     else if (ap == 1) {
@@ -3179,11 +2686,11 @@ int increment_status_count(interop_data_t *telemetry, wlan_status_code_t code, i
             case AWLAN_STATUS_ROBUST_MGMT_FRAME_POLICY_VIOLATION: telemetry->ap_status_counts[3]++; break;
             case AWLAN_STATUS_AKMP_NOT_VALID: telemetry->ap_status_counts[4]++; break;
             case AWLAN_STATUS_INVALID_PMKID: telemetry->ap_status_counts[5]++; break;
-            default: wifi_util_dbg_print(WIFI_MON, "start %s:%d unknown status code \n",__FUNCTION__,__LINE__); return -1;
+            default: wifi_util_dbg_print(WIFI_MON, "start %s:%d unknown status code for ap \n",__FUNCTION__,__LINE__); return -1;
         }
     }
     else {
-        wifi_util_dbg_print(WIFI_MON, "start %s:%d it's not an ap or station mac \n",__FUNCTION__,__LINE__);
+        wifi_util_dbg_print(WIFI_MON, "%s:%d it's not an ap or station mac \n",__FUNCTION__,__LINE__);
         return -1;
     }
     return 0;
@@ -3192,16 +2699,14 @@ int increment_status_count(interop_data_t *telemetry, wlan_status_code_t code, i
 
 int ap_status_code(int ap_index, char *src_mac, char *dest_mac, int type, int status)
 {
-    //char buff[256];
     int is_ap = -1;
-    wifi_util_dbg_print(WIFI_MON,"%s:%d start \n", __func__, __LINE__);
+    hash_map_t *sta_map;
+    interop_data_t *sta;
     if (src_mac == NULL || dest_mac == NULL) {
         wifi_util_dbg_print(WIFI_MON,"%s:%d input mac adrress is NULL for ap_index:%d status:%d\n", __func__, __LINE__, ap_index, status);
         return -1;
     }
     wifi_util_dbg_print(WIFI_MON, "%s:%d details of vap_index:%d src_mac :%s dest_mac :%s status:%d type:%d \r\n", __func__, __LINE__, ap_index, src_mac, dest_mac,status,type);
-    hash_map_t *sta_map;
-    interop_data_t *sta;
     sta_map = get_interop_sta_data_map(ap_index);
     if (sta_map == NULL) {
         wifi_util_error_print(WIFI_MON, "%s:%d sta_data map not found for vap_index:%d\r\n", __func__, __LINE__, ap_index);
@@ -3210,53 +2715,34 @@ int ap_status_code(int ap_index, char *src_mac, char *dest_mac, int type, int st
     sta = (interop_data_t *)hash_map_get(sta_map, src_mac);
     if (NULL == sta) {
         is_ap = 1;
-        wifi_util_error_print(WIFI_MON, "%s:%d is_ap is 1 as station is not found for vap_index:%d src_mac :%s \r\n", __func__, __LINE__, ap_index, src_mac);
+        wifi_util_dbg_print(WIFI_MON, "%s:%d is_ap is 1 as station is not found for vap_index:%d src_mac :%s \r\n", __func__, __LINE__, ap_index, src_mac);
         sta = (interop_data_t *)hash_map_get(sta_map, dest_mac);
         if (NULL == sta) {
-            wifi_util_error_print(WIFI_MON, "%s:%d station is not found for vap_index:%d dest_mac :%s \r\n", __func__, __LINE__, ap_index, dest_mac);
+            wifi_util_dbg_print(WIFI_MON, "%s:%d station is not found for vap_index:%d dest_mac :%s \r\n", __func__, __LINE__, ap_index, dest_mac);
             return RETURN_ERR;
 	}
     }
     else {
         is_ap = 0;
-        wifi_util_dbg_print(WIFI_MON, " exit %s:%d as is_ap is 0 \n", __func__, __LINE__);
     }
     wlan_status_code_t status_code = (wlan_status_code_t)status;
     if (increment_status_count(sta, status_code, is_ap) == -1) {
-        wifi_util_dbg_print(WIFI_MON, " exit %s:%d as p[articular status is not there\n", __func__, __LINE__);
+        wifi_util_dbg_print(WIFI_MON, " exit %s:%d as particular status is not there\n", __func__, __LINE__);
         return 0;
     }
-    /*wifi_mgmtFrameType_t frameType = (wifi_mgmtFrameType_t)type;
-    const char  *status_string = get_status_string(status_code);
-    const char  *marker_name = get_marker_status_string(status_code);
-    const char  *frame_string = get_frame_type_string(frameType);
-    if (strstr(status_string, "UNKNOWN") != NULL || strstr(marker_name, "UNKNOWN") != NULL || strstr(frame_string, "UNKNOWN") != NULL ) {
-        wifi_util_dbg_print(WIFI_MON,"%s:%d status:%s marker:%s frame:%s \n", __func__, __LINE__,status_string,marker_name,frame_string);
-        return 0;
-    }
-    snprintf(buff, 256, "%s,%d,%s,%s,%s,%d,%s", marker_name, ap_index+1, frame_string, src_mac, dest_mac, status, status_string);
-    if (rate_limit_log(sta, buff) == 0) {
-           //write_to_file(wifi_health_log, buff);
-           //get_stubs_descriptor()->t2_event_s_fn((char *)marker_name,buff);
-	   wifi_util_dbg_print(WIFI_MON, " hey %s:%d %s\n", __func__, __LINE__,buff);
-    }
-    wifi_util_dbg_print(WIFI_MON, " exit %s:%d %s\n", __func__, __LINE__,buff);*/
-    wifi_util_dbg_print(WIFI_MON,"%s:%d exit \n", __func__, __LINE__);
     return 0;
 }
 
 int ap_reason_code(int ap_index, char *src_mac, char *dest_mac, int type, int reason_code)
 {
-    //char buff[256];
     int is_ap = -1;
-    wifi_util_dbg_print(WIFI_MON,"%s:%d start \n", __func__, __LINE__);
+    hash_map_t *sta_map;
+    interop_data_t *sta;
     if (src_mac == NULL || dest_mac == NULL) {
         wifi_util_dbg_print(WIFI_MON,"%s:%d input mac adrress is NULL for ap_index:%d reason:%d\n", __func__, __LINE__, ap_index, reason_code);
         return -1;
     }
     wifi_util_dbg_print(WIFI_MON, "%s:%d details of vap_index:%d src_mac :%s dest_mac :%s reason:%d type:%d \r\n", __func__, __LINE__, ap_index, src_mac, dest_mac, reason_code, type);
-    hash_map_t *sta_map;
-    interop_data_t *sta;
     sta_map = get_interop_sta_data_map(ap_index);
     if (sta_map == NULL) {
         wifi_util_error_print(WIFI_MON, "%s:%d sta_data map not found for vap_index:%d\r\n", __func__, __LINE__, ap_index);
@@ -3266,38 +2752,21 @@ int ap_reason_code(int ap_index, char *src_mac, char *dest_mac, int type, int re
     sta = (interop_data_t *)hash_map_get(sta_map, src_mac);
     if (NULL == sta) {
         is_ap = 1;
-        wifi_util_error_print(WIFI_MON, "%s:%d station is not found for vap_index:%d src_mac :%s \r\n", __func__, __LINE__, ap_index, src_mac);
+        wifi_util_dbg_print(WIFI_MON, "%s:%d is_ap is 1 as station is not found for vap_index:%d src_mac :%s \r\n", __func__, __LINE__, ap_index, src_mac);
         sta = (interop_data_t *)hash_map_get(sta_map, dest_mac);
         if (NULL == sta) {
-            wifi_util_error_print(WIFI_MON, "%s:%d station is not found for vap_index:%d dest_mac :%s \r\n", __func__, __LINE__, ap_index, dest_mac);
+            wifi_util_dbg_print(WIFI_MON, "%s:%d station is not found for vap_index:%d dest_mac :%s \r\n", __func__, __LINE__, ap_index, dest_mac);
             return RETURN_ERR;
 	}
     }
     else {
         is_ap = 0;
-        wifi_util_dbg_print(WIFI_MON, " exit %s:%d as is_ap is 0 \n", __func__, __LINE__);
     }
     WlanReasonCode reason = (WlanReasonCode)reason_code;
     if (increment_reason_count(sta, reason, is_ap) == -1) {
-        wifi_util_dbg_print(WIFI_MON, " exit %s:%d as p[articular reason is not there\n", __func__, __LINE__);
+        wifi_util_dbg_print(WIFI_MON, " exit %s:%d as particular reason is not there\n", __func__, __LINE__);
         return 0;
     }
-    /*wifi_mgmtFrameType_t frameType = (wifi_mgmtFrameType_t)type;
-    const char  *reason_string = get_reason_string(reason);
-    const char  *marker_name = get_marker_reason_string(reason);
-    const char  *frame_string = get_frame_type_string(frameType);
-    if (strstr(reason_string, "UNKNOWN") != NULL || strstr(marker_name, "UNKNOWN") != NULL || strstr(frame_string, "UNKNOWN") != NULL) {
-        wifi_util_dbg_print(WIFI_MON,"%s:%d reason:%s marker:%s frame:%s \n", __func__, __LINE__,reason_string,marker_name,frame_string);
-        return 0;
-    }
-    snprintf(buff, 256, "%s,%d,%s,%s,%s,%d,%s",marker_name, ap_index+1, frame_string, src_mac, dest_mac, reason_code, reason_string);
-    if (rate_limit_log(sta, buff) == 0) {
-           //write_to_file(wifi_health_log, buff);
-           //get_stubs_descriptor()->t2_event_s_fn((char *)marker_name,buff);
-	   wifi_util_dbg_print(WIFI_MON, " hey %s:%d %s\n", __func__, __LINE__,buff);
-    }
-    wifi_util_dbg_print(WIFI_MON, "exit %s:%d %s\n", __func__, __LINE__, buff);*/
-    wifi_util_dbg_print(WIFI_MON,"%s:%d exit \n", __func__, __LINE__);
     return 0;
 }
 
@@ -3340,7 +2809,6 @@ int device_disassociated(int ap_index, char *src_mac, char *dest_mac, int type, 
     data.u.dev.sta_mac[0] = mac_addr[0]; data.u.dev.sta_mac[1] = mac_addr[1]; data.u.dev.sta_mac[2] = mac_addr[2];
     data.u.dev.sta_mac[3] = mac_addr[3]; data.u.dev.sta_mac[4] = mac_addr[4]; data.u.dev.sta_mac[5] = mac_addr[5];
     data.u.dev.reason = reason;
-    wifi_util_dbg_print(WIFI_MON,"%s:%d wifi_event_monitor disconnect \n", __func__, __LINE__);
     push_event_to_monitor_queue(&data, wifi_event_monitor_disconnect, NULL);
 
     if (is_sta_active == false) {
@@ -3829,9 +3297,9 @@ static void update_interop_interval(void)
         if (g_monitor_module.interop_id != 0) {
             scheduler_cancel_timer_task(g_monitor_module.sched, g_monitor_module.interop_id);
             g_monitor_module.interop_id = 0;
-	    wifi_util_dbg_print(WIFI_MON, "%s:%d interop id not 0 new chan util period:%d monitor:%d \n", __func__, __LINE__,new_chan_util_period,g_monitor_module.curr_chan_util_period);
+	    wifi_util_dbg_print(WIFI_MON, "%s:%d setting interop id to zero new chan util period:%d monitor:%d \n", __func__, __LINE__,new_chan_util_period,g_monitor_module.curr_chan_util_period);
         }
-        wifi_util_dbg_print(WIFI_MON, "%s:%d exit new chan util period:%d monitor:%d \n", __func__, __LINE__,new_chan_util_period,g_monitor_module.curr_chan_util_period);
+        wifi_util_dbg_print(WIFI_MON, "%s:%d exit interop id is zero new chan util period:%d monitor:%d \n", __func__, __LINE__,new_chan_util_period,g_monitor_module.curr_chan_util_period);
     }
     wifi_util_dbg_print(WIFI_MON, "exit %s:%d new ch util period = %d \n",__FUNCTION__,__LINE__,new_chan_util_period);
 }
@@ -3928,7 +3396,6 @@ int init_wifi_monitor()
              __FUNCTION__,__LINE__,uptimeval,(g_monitor_module.upload_period*60));
 
     global_param = get_wifidb_wifi_global_param();
-    wifi_util_dbg_print(WIFI_MON, "%s: num_stats:%d marker enable:%d \n", __FUNCTION__,global_param->num_stats,global_param->marker_enable);
     g_monitor_module.sta_health_rssi_threshold = global_param->good_rssi_threshold;
     for (i = 0; i < getTotalNumberVAPs(); i++) {
         UINT vap_index = VAP_INDEX(mgr->hal_cap, i);
@@ -3975,11 +3442,11 @@ int init_wifi_monitor()
 
     for (i = 0; i < getTotalNumberVAPs(); i++) {
         UINT vap_index = VAP_INDEX(mgr->hal_cap, i);
-        wifi_util_dbg_print(WIFI_MON, "%s: before vapIndex:%d \n", __FUNCTION__, vap_index);
+        wifi_util_dbg_print(WIFI_MON, "%s: incoming vapIndex:%d \n", __FUNCTION__, vap_index);
         if (!(isVapPrivate(vap_index) || isVapHotspotSecure5g(vap_index) || isVapHotspotSecure6g(vap_index) || isVapHotspotOpen5g(vap_index) || isVapHotspotOpen6g(vap_index))) {
             continue;
         }
-        wifi_util_dbg_print(WIFI_MON, "%s: after vapIndex:%d \n", __FUNCTION__, vap_index);
+        wifi_util_dbg_print(WIFI_MON, "%s: creating hashmap for vapIndex:%d \n", __FUNCTION__, vap_index);
         g_monitor_module.bssid_data[i].interop_sta_map = hash_map_create();
         if (g_monitor_module.bssid_data[i].interop_sta_map == NULL) {
             deinit_wifi_monitor();
