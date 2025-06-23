@@ -3481,7 +3481,7 @@ void handle_webconfig_event(wifi_ctrl_t *ctrl, const char *raw, unsigned int len
     webconfig_subdoc_type_t subdoc_type;
     wifi_vap_name_t vap_names[MAX_NUM_RADIOS * MAX_NUM_VAP_PER_RADIO];
     unsigned int num_ssid = 0;
-
+    cJSON *json = NULL;
     switch (subtype) {
     case wifi_event_webconfig_set_data:
     case wifi_event_webconfig_set_data_dml:
@@ -3495,8 +3495,9 @@ void handle_webconfig_event(wifi_ctrl_t *ctrl, const char *raw, unsigned int len
         if (raw == NULL) {
             return;
         }
-
-        subdoc_type = find_subdoc_type(config, cJSON_Parse(raw));
+        json = cJSON_Parse(raw);
+        subdoc_type = find_subdoc_type(config, json);
+        cJSON_Delete(json);
         switch (subdoc_type) {
         case webconfig_subdoc_type_private:
             num_ssid += get_list_of_private_ssid(&mgr->hal_cap.wifi_prop, MAX_NUM_RADIOS,
