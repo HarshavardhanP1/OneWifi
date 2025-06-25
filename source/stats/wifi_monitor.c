@@ -454,7 +454,7 @@ int set_auth_req_frame_data(frame_data_t *msg) {
     return RETURN_OK;
 }
 
-void telemetry_event_code_count(interop_data_t *sta1,int vapindex, char *mac, char *ap) {
+/*void telemetry_event_code_count(interop_data_t *sta1,int vapindex, char *mac, char *ap) {
     char telemetry_buff[128] = {0};
     char telemetry_val[512] = {0};
     char telemetry_buff_grep[128] = {0};
@@ -478,7 +478,52 @@ void telemetry_event_code_count(interop_data_t *sta1,int vapindex, char *mac, ch
     snprintf(buff, 1024, "%s:%s:%s\n", tmp, telemetry_buff_grep, telemetry_val);
     write_to_file(wifi_health_log, buff);
     get_stubs_descriptor()->t2_event_s_fn(telemetry_buff, telemetry_val);
+}*/
+
+void telemetry_event_code_count(interop_data_t *sta1, int vapindex, char *mac, char *ap) {
+    char telemetry_buff_client_ap[32] = {0};
+    char telemetry_buff_ap_client[32] = {0};
+    char telemetry_val_client_ap[512] = {0};
+    char telemetry_val_ap_client[512] = {0};
+    char buff[1024];
+    char tmp[128];
+    if (!mac || !ap) {
+        wifi_util_info_print(WIFI_MON, "Error: MAC or AP address is NULL\n");
+        return;
+    }
+    // Marker 1: hey Client to AP
+    snprintf(telemetry_buff_client_ap, sizeof(telemetry_buff_client_ap), "REASON_STATUS_COUNT_CLIENT_AP");
+    snprintf(telemetry_val_client_ap, sizeof(telemetry_val_client_ap),
+        "%d:Client:%s,AP:%s,Status_codes:1:%d,16:%d,30:%d,31:%d,43:%d,53:%d,"
+        "Reason_codes:1:%d,2:%d,3:%d,9:%d,14:%d,15:%d,20:%d,23:%d,49:%d",
+        vapindex + 1, mac, ap,
+        sta1->sta_status_counts[0], sta1->sta_status_counts[1], sta1->sta_status_counts[2],
+        sta1->sta_status_counts[3], sta1->sta_status_counts[4], sta1->sta_status_counts[5],
+        sta1->sta_reason_counts[0], sta1->sta_reason_counts[1], sta1->sta_reason_counts[2],
+        sta1->sta_reason_counts[3], sta1->sta_reason_counts[4], sta1->sta_reason_counts[5],
+        sta1->sta_reason_counts[6], sta1->sta_reason_counts[7], sta1->sta_reason_counts[8]);
+    // Marker 2: hey AP to Client
+    snprintf(telemetry_buff_ap_client, sizeof(telemetry_buff_ap_client), "REASON_STATUS_COUNT_AP_CLIENT");
+    snprintf(telemetry_val_ap_client, sizeof(telemetry_val_ap_client),
+        "%d:AP:%s,Client:%s,Status_codes:1:%d,16:%d,30:%d,31:%d,43:%d,53:%d,"
+        "Reason_codes:1:%d,2:%d,3:%d,9:%d,14:%d,15:%d,20:%d,23:%d,49:%d",
+        vapindex + 1, ap, mac,
+        sta1->ap_status_counts[0], sta1->ap_status_counts[1], sta1->ap_status_counts[2],
+        sta1->ap_status_counts[3], sta1->ap_status_counts[4], sta1->ap_status_counts[5],
+        sta1->ap_reason_counts[0], sta1->ap_reason_counts[1], sta1->ap_reason_counts[2],
+        sta1->ap_reason_counts[3], sta1->ap_reason_counts[4], sta1->ap_reason_counts[5],
+        sta1->ap_reason_counts[6], sta1->ap_reason_counts[7], sta1->ap_reason_counts[8]);
+    // now Write both entries to log
+    get_formatted_time(tmp);
+    snprintf(buff, sizeof(buff), "%s:%s:%s\n%s:%s:%s\n",
+             tmp, telemetry_buff_client_ap, telemetry_val_client_ap,
+             tmp, telemetry_buff_ap_client, telemetry_val_ap_client);
+    write_to_file(wifi_health_log, buff);
+    // Send both telemetry events
+    get_stubs_descriptor()->t2_event_s_fn(telemetry_buff_client_ap, telemetry_val_client_ap);
+    get_stubs_descriptor()->t2_event_s_fn(telemetry_buff_ap_client, telemetry_val_ap_client);
 }
+
 
 int update_interop_sta_data(unsigned int vap_index) {
 
