@@ -2900,8 +2900,11 @@ int increment_eap_status_count(interop_data_t *telemetry, wifi_eap_status_code_t
 
 int eap_status_code(int ap_index, char *src_mac, int reason)
 {
-    /*hash_map_t *sta_map;
+    hash_map_t *sta_map;
     interop_data_t *sta;
+	if (reason == 23) {
+		return 0;
+	}
     if (src_mac == NULL ) {
         wifi_util_dbg_print(WIFI_MON,"%s:%d input mac adrress is NULL for ap_index:%d reason:%d\n", __func__, __LINE__, ap_index, reason);
         return -1;
@@ -2922,7 +2925,6 @@ int eap_status_code(int ap_index, char *src_mac, int reason)
         return 0;
     }
     wifi_util_dbg_print(WIFI_MON, "%s:%d  station is found for vap_index:%d src_mac :%s and incremented with reason:%d \r\n", __func__, __LINE__, ap_index, src_mac, reason);
-    return 0;*/
     return 0;
 }
 
