@@ -2994,11 +2994,11 @@ int device_deauthenticated(int ap_index, char *src_mac, char *dest_mac, int type
 
     if (src_mac == NULL || dest_mac == NULL ) {
         wifi_util_dbg_print(WIFI_MON,"%s:%d input mac adrress is NULL for ap_index:%d reason:%d\n", __func__, __LINE__, ap_index, reason);
+        return -1;
     }
 
     if ((ap_reason_code(ap_index, src_mac, dest_mac, type, reason)) != 0) {
        wifi_util_dbg_print(WIFI_MON,"%s:%d failed in getting the reason code details as mac is null \n", __func__, __LINE__);
-       return -1;
     }
 
     if (reason == WLAN_RADIUS_GREYLIST_REJECT) {
