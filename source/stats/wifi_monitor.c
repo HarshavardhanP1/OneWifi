@@ -466,7 +466,132 @@ static bool has_non_zero_counts(const int *status_counts, const int *reason_coun
     return false;
 }
 
-void telemetry_event_code_count(interop_data_t *sta1, int vapindex, char *mac, char *ap) {
+void telemetry_event_code_count(interop_data_t *sta1, int vapindex, char *mac, char *ap)
+{
+    char telemetry_buff[128] = {0};
+    char telemetry_val[512] = {0};
+    char telemetry_buff_grep[128] = {0};
+    char buff[1024];
+    char tmp[128];
+	
+    if (!mac || !ap) {
+        wifi_util_info_print(WIFI_MON, "Error: MAC or AP address is NULL\n");
+        return;
+    }
+
+    bool has_sta_data = has_non_zero_counts(sta1->sta_status_counts, sta1->sta_reason_counts);
+    bool has_ap_data  = has_non_zero_counts(sta1->ap_status_counts, sta1->ap_reason_counts);
+
+    if (!has_sta_data && !has_ap_data) {
+        wifi_util_dbg_print(WIFI_MON,
+                            "All status and reason counts are zero. Skipping telemetry.\n");
+        return;
+    }
+
+    if (has_sta_data) {
+		memset(tmp, 0, sizeof(tmp));
+		memset(telemetry_buff, 0, sizeof(telemetry_buff));
+		memset(telemetry_val, 0, sizeof(telemetry_val));
+		memset(telemetry_buff_grep, 0, sizeof(telemetry_buff_grep));
+		memset(buff, 0, sizeof(buff));
+        char rc_list[256] = {0};
+        bool first = true;
+        for (int i = 0; i < REASON_COUNT_SIZE; i++) {
+            if (sta1->sta_reason_counts[i] != 0) {
+                snprintf(rc_list + strlen(rc_list), sizeof(rc_list) - strlen(rc_list),
+                         "%s%d:%d", first ? "" : ", ", i + 1, sta1->sta_reason_counts[i]);
+                first = false;
+            }
+        }
+
+        snprintf(telemetry_buff, sizeof(telemetry_buff),
+                 "DISCONN_COUNT_STA_AP_%d", vapindex + 1);
+
+        snprintf(telemetry_val, sizeof(telemetry_val),
+                 "%s: %s, RC: %s\n", telemetry_buff, mac, rc_list);
+
+
+
+       strncpy(telemetry_buff_grep, telemetry_buff, sizeof(telemetry_buff_grep) - 1);
+       telemetry_buff_grep[sizeof(telemetry_buff_grep) - 1] = '\0';
+
+       wifi_util_dbg_print(WIFI_MON, "%s:%s\n", telemetry_buff_grep, telemetry_val);
+       get_formatted_time(tmp);
+       snprintf(buff, sizeof(buff), "%s:%s:%s\n", tmp, telemetry_buff_grep, telemetry_val);
+       write_to_file(wifi_health_log, buff);
+       get_stubs_descriptor()->t2_event_s_fn(telemetry_buff, telemetry_val);	
+    }
+
+    if (has_ap_data) {
+		memset(tmp, 0, sizeof(tmp));
+		memset(telemetry_buff, 0, sizeof(telemetry_buff));
+		memset(telemetry_val, 0, sizeof(telemetry_val));
+		memset(telemetry_buff_grep, 0, sizeof(telemetry_buff_grep));
+		memset(buff, 0, sizeof(buff));
+        char rc_list[256] = {0};
+        bool first = true;
+        for (int i = 0; i < REASON_COUNT_SIZE; i++) {
+            if (sta1->ap_reason_counts[i] != 0) {
+                snprintf(rc_list + strlen(rc_list), sizeof(rc_list) - strlen(rc_list),
+                         "%s%d:%d", first ? "" : ", ", i + 1, sta1->ap_reason_counts[i]);
+                first = false;
+            }
+        }
+
+        snprintf(telemetry_buff, sizeof(telemetry_buff),
+                 "DISCONN_COUNT_AP_STA_%d", vapindex + 1);
+
+        snprintf(telemetry_val, sizeof(telemetry_val),
+                 "%s: %s, RC: %s\n", telemetry_buff, mac, rc_list);
+
+
+
+       strncpy(telemetry_buff_grep, telemetry_buff, sizeof(telemetry_buff_grep) - 1);
+       telemetry_buff_grep[sizeof(telemetry_buff_grep) - 1] = '\0';
+
+       wifi_util_dbg_print(WIFI_MON, "%s:%s\n", telemetry_buff_grep, telemetry_val);
+       get_formatted_time(tmp);
+       snprintf(buff, sizeof(buff), "%s:%s:%s\n", tmp, telemetry_buff_grep, telemetry_val);
+       write_to_file(wifi_health_log, buff);
+       get_stubs_descriptor()->t2_event_s_fn(telemetry_buff, telemetry_val);	
+    }
+	
+    if (has_ap_data) {
+		memset(tmp, 0, sizeof(tmp));
+		memset(telemetry_buff, 0, sizeof(telemetry_buff));
+		memset(telemetry_val, 0, sizeof(telemetry_val));
+		memset(telemetry_buff_grep, 0, sizeof(telemetry_buff_grep));
+		memset(buff, 0, sizeof(buff));
+        char sc_list[256] = {0};
+        bool first = true;
+        for (int i = 0; i < STATUS_COUNT_SIZE; i++) {
+            if (sta1->ap_status_counts[i] != 0) {
+                snprintf(sc_list + strlen(sc_list), sizeof(sc_list) - strlen(sc_list),
+                         "%s%d:%d", first ? "" : ", ", i + 1, sta1->ap_status_counts[i]);
+                first = false;
+            }
+        }
+
+        snprintf(telemetry_buff, sizeof(telemetry_buff),
+                 "CONN_REJECT_COUNT_%d", vapindex + 1);
+
+        snprintf(telemetry_val, sizeof(telemetry_val),
+                 "%s: %s, SC: %s\n", telemetry_buff, ap, sc_list);
+	
+       strncpy(telemetry_buff_grep, telemetry_buff, sizeof(telemetry_buff_grep) - 1);
+       telemetry_buff_grep[sizeof(telemetry_buff_grep) - 1] = '\0';
+
+       wifi_util_dbg_print(WIFI_MON, "%s:%s\n", telemetry_buff_grep, telemetry_val);
+       get_formatted_time(tmp);
+       snprintf(buff, sizeof(buff), "%s:%s:%s\n", tmp, telemetry_buff_grep, telemetry_val);
+       write_to_file(wifi_health_log, buff);
+       get_stubs_descriptor()->t2_event_s_fn(telemetry_buff, telemetry_val);	
+    }
+
+}
+
+
+/*void telemetry_event_code_count(interop_data_t *sta1, int vapindex, char *mac, char *ap) {
     char telemetry_buff[128] = {0};
     char telemetry_val[512] = {0};
     char telemetry_buff_grep[128] = {0};
@@ -520,7 +645,9 @@ void telemetry_event_code_count(interop_data_t *sta1, int vapindex, char *mac, c
     snprintf(buff, sizeof(buff), "%s:%s:%s\n", tmp, telemetry_buff_grep, telemetry_val);
     write_to_file(wifi_health_log, buff);
     get_stubs_descriptor()->t2_event_s_fn(telemetry_buff, telemetry_val);
-}
+}*/
+
+
 
 int update_interop_sta_data(unsigned int vap_index) {
 
