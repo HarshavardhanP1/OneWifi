@@ -508,7 +508,7 @@ void telemetry_event_code_count(interop_data_t *sta1, int vapindex, char *mac, c
                  "DISCONN_COUNT_STA_AP_%d", vapindex + 1);
 
         snprintf(telemetry_val, sizeof(telemetry_val),
-                 "%s: %s, RC: %s\n", telemetry_buff, mac, rc_list);
+                 "%s, RC:%s\n", mac, rc_list);
 
 
 
@@ -542,7 +542,7 @@ void telemetry_event_code_count(interop_data_t *sta1, int vapindex, char *mac, c
                  "DISCONN_COUNT_AP_STA_%d", vapindex + 1);
 
         snprintf(telemetry_val, sizeof(telemetry_val),
-                 "%s: %s, RC: %s\n", telemetry_buff, mac, rc_list);
+                 "%s, RC:%s\n", mac, rc_list);
 
 
 
@@ -576,7 +576,7 @@ void telemetry_event_code_count(interop_data_t *sta1, int vapindex, char *mac, c
                  "CONN_REJECT_COUNT_%d", vapindex + 1);
 
         snprintf(telemetry_val, sizeof(telemetry_val),
-                 "%s: %s, SC: %s\n", telemetry_buff, ap, sc_list);
+                 "%s, SC:%s\n", ap, sc_list);
 	
        strncpy(telemetry_buff_grep, telemetry_buff, sizeof(telemetry_buff_grep) - 1);
        telemetry_buff_grep[sizeof(telemetry_buff_grep) - 1] = '\0';
