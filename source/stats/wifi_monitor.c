@@ -525,6 +525,41 @@ void telemetry_event_code_count(interop_data_t *sta1, int vapindex, char *mac, c
        get_stubs_descriptor()->t2_event_s_fn(telemetry_buff, telemetry_val);	
     }
 
+    if (has_sta_data) {
+		memset(tmp, 0, sizeof(tmp));
+		memset(telemetry_buff, 0, sizeof(telemetry_buff));
+		memset(telemetry_val, 0, sizeof(telemetry_val));
+		memset(telemetry_buff_grep, 0, sizeof(telemetry_buff_grep));
+		memset(buff, 0, sizeof(buff));
+        char sc_list[256] = {0};
+        bool first = true;
+        for (int i = 0; i < STATUS_COUNT_SIZE; i++) {
+            if (sta1->sta_status_counts[i] != 0) {
+                snprintf(sc_list + strlen(sc_list), sizeof(sc_list) - strlen(sc_list),
+                         "%s%d:%d", first ? "" : ", ", i + 1, sta1->sta_status_counts[i]);
+                first = false;
+            }
+        }
+        if (strlen(sc_list) == 0) {
+            wifi_util_dbg_print(WIFI_MON, "No STA status codes for %s, skipping telemetry.\n", mac);
+            return;
+        }
+        snprintf(telemetry_buff, sizeof(telemetry_buff),
+                 "CONN_REJECT_STA_%d", vapindex + 1);
+
+        snprintf(telemetry_val, sizeof(telemetry_val),
+                 "%s, SC:%s\n", mac, sc_list);
+	
+       strncpy(telemetry_buff_grep, telemetry_buff, sizeof(telemetry_buff_grep) - 1);
+       telemetry_buff_grep[sizeof(telemetry_buff_grep) - 1] = '\0';
+
+       wifi_util_dbg_print(WIFI_MON, "%s:%s\n", telemetry_buff_grep, telemetry_val);
+       get_formatted_time(tmp);
+       snprintf(buff, sizeof(buff), "%s:%s:%s\n", tmp, telemetry_buff_grep, telemetry_val);
+       write_to_file(wifi_health_log, buff);
+       get_stubs_descriptor()->t2_event_s_fn(telemetry_buff, telemetry_val);	
+    }
+	
     if (has_ap_data) {
 		memset(tmp, 0, sizeof(tmp));
 		memset(telemetry_buff, 0, sizeof(telemetry_buff));
