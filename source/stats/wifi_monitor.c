@@ -3608,7 +3608,7 @@ int device_associated(int ap_index, wifi_associated_dev_t *associated_dev)
     get_client_assoc_frame(ap_index, associated_dev, &assoc_data);
     get_interop_client_assoc_frame(ap_index, associated_dev, chan_stats.radio_NoiseFloor);
 
-    memcpy(assoc_data.dev_stats.cli_MACAddress, data.u.dev.sta_mac, sizeof(mac_address_t));
+    memcpy(assoc_data.dev_stats.cli_MACAddress, data->u.dev.sta_mac, sizeof(mac_address_t));
     assoc_data.dev_stats.cli_SignalStrength = associated_dev->cli_SignalStrength;
     assoc_data.dev_stats.cli_RSSI = associated_dev->cli_RSSI;
     assoc_data.dev_stats.cli_AuthenticationState = associated_dev->cli_AuthenticationState;
