@@ -563,7 +563,7 @@ static void telemetry_event_common(const char *event_name, int count, int vapind
     char tmp[64];
     snprintf(telemetry_buff, sizeof(telemetry_buff), "%s", event_name);
     snprintf(telemetry_val, sizeof(telemetry_val), "%d,%s,%s,%d", vapindex + 1, ap, mac, count);
-    wifi_util_info_print(WIFI_MON, "%s:%s\n", telemetry_buff, telemetry_val);
+    wifi_util_info_print(WIFI_MON, "%s_%s\n", telemetry_buff, telemetry_val);
     get_formatted_time(tmp);
     snprintf(buff, sizeof(buff), "%s:%s:%s\n", tmp, telemetry_buff, telemetry_val);
     write_to_file(wifi_health_log, buff);
@@ -629,6 +629,8 @@ void telemetry_event_code_count(interop_data_t *sta1, int vapindex, char *mac, c
     char telemetry_buff_grep[128] = {0};
     char buff[1024];
     char tmp[128];
+	bool ipenable;
+	wifi_front_haul_bss_t *vap_bss_info = Get_wifi_object_bss_parameter(vapindex);
     if (!mac || !ap) {
         wifi_util_info_print(WIFI_MON, "Error: MAC address is NULL\n");
         return;
@@ -642,11 +644,15 @@ void telemetry_event_code_count(interop_data_t *sta1, int vapindex, char *mac, c
     //telemetry_event_reason_status_count(sta1, vapindex, mac, ap);
     //telemetry_event_ap_reason_status_count(sta1, vapindex, mac, ap);
 	telemetry_event_interop_extra_details(sta1, vapindex, mac, ap);
-
+    if (vap_bss_info == NULL) {
+	  wifi_util_dbg_print(WIFI_MON, "%s:%d vap_bss_info is null for vap_idex:%d \r\n", __func__, __LINE__, vapindex);
+          return RETURN_ERR;
+    }
     bool has_sta_data = has_non_zero_counts(sta1->sta_status_counts, sta1->sta_reason_counts);
     bool has_ap_data  = has_non_zero_counts(sta1->ap_status_counts, sta1->ap_reason_counts);
-
-    if (!has_sta_data && !has_ap_data) {
+    ipenable = vap_bss_info->interop_ctrl;
+	wifi_util_dbg_print(WIFI_MON, "%s:%d ipenable:%d \r\n", __func__, __LINE__,vap_bss_info->interop_ctrl);
+    if (!has_sta_data && !has_ap_data and !ipenable) {
         wifi_util_dbg_print(WIFI_MON,
                             "All status and reason counts are zero. Skipping telemetry.\n");
         return;
