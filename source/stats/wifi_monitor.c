@@ -565,7 +565,7 @@ static void telemetry_event_common(const char *event_name, int count, int vapind
     snprintf(telemetry_val, sizeof(telemetry_val), "%d,%s,%s,%d", vapindex + 1, ap, mac, count);
     wifi_util_info_print(WIFI_MON, "%s_%s\n", telemetry_buff, telemetry_val);
     get_formatted_time(tmp);
-    snprintf(buff, sizeof(buff), "%s:%s:%s\n", tmp, telemetry_buff, telemetry_val);
+    snprintf(buff, sizeof(buff), "%s:%s_%s\n", tmp, telemetry_buff, telemetry_val);
     write_to_file(wifi_health_log, buff);
     get_stubs_descriptor()->t2_event_s_fn(telemetry_buff, telemetry_val);
 }
