@@ -646,13 +646,13 @@ void telemetry_event_code_count(interop_data_t *sta1, int vapindex, char *mac, c
 	telemetry_event_interop_extra_details(sta1, vapindex, mac, ap);
     if (vap_bss_info == NULL) {
 	  wifi_util_dbg_print(WIFI_MON, "%s:%d vap_bss_info is null for vap_idex:%d \r\n", __func__, __LINE__, vapindex);
-          return RETURN_ERR;
+          return;
     }
     bool has_sta_data = has_non_zero_counts(sta1->sta_status_counts, sta1->sta_reason_counts);
     bool has_ap_data  = has_non_zero_counts(sta1->ap_status_counts, sta1->ap_reason_counts);
     ipenable = vap_bss_info->interop_ctrl;
 	wifi_util_dbg_print(WIFI_MON, "%s:%d ipenable:%d \r\n", __func__, __LINE__,vap_bss_info->interop_ctrl);
-    if (!has_sta_data && !has_ap_data and !ipenable) {
+    if (!has_sta_data && !has_ap_data && !ipenable) {
         wifi_util_dbg_print(WIFI_MON,
                             "All status and reason counts are zero. Skipping telemetry.\n");
         return;
