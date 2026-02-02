@@ -405,6 +405,7 @@ int set_auth_req_frame_data(frame_data_t *msg) {
     char *str;
     int ipstat,sta_map_count;
     bool ipenable;
+	bool ip_tel_enable;
     wifi_radioTrafficStats2_t chan_stats;
     frame = (struct ieee80211_mgmt *)msg->data;
     if (frame == NULL) {
