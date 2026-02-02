@@ -630,13 +630,13 @@ void telemetry_event_code_count(interop_data_t *sta1, int vapindex, char *mac, c
     char telemetry_buff_grep[128] = {0};
     char buff[1024];
     char tmp[128];
-	bool ipenable;
+	bool ip_tel_enable;
 	wifi_front_haul_bss_t *vap_bss_info = Get_wifi_object_bss_parameter(vapindex);
     if (!mac || !ap) {
         wifi_util_info_print(WIFI_MON, "Error: MAC address is NULL\n");
         return;
     }
-	wifi_util_dbg_print(WIFI_MON, "%s:%d station found for mac :%s vap index:%d ,rssi:%d, noise:%d snr:%d channel_util:%d \n", __func__, __LINE__, mac, vapindex, sta1->rssi, sta1->noise_floor, sta1->snr, sta1->channel_util);
+	wifi_util_info_print(WIFI_MON, "%s:%d station found for mac :%s vap index:%d ,rssi:%d, noise:%d snr:%d channel_util:%d \n", __func__, __LINE__, mac, vapindex, sta1->rssi, sta1->noise_floor, sta1->snr, sta1->channel_util);
     telemetry_event_access_accept_count(sta1, vapindex, mac, ap);
     telemetry_event_eap_success_count(sta1, vapindex, mac, ap);
     telemetry_event_eap_failure_count(sta1, vapindex, mac, ap);
@@ -651,11 +651,11 @@ void telemetry_event_code_count(interop_data_t *sta1, int vapindex, char *mac, c
     }
     bool has_sta_data = has_non_zero_counts(sta1->sta_status_counts, sta1->sta_reason_counts);
     bool has_ap_data  = has_non_zero_counts(sta1->ap_status_counts, sta1->ap_reason_counts);
-    ipenable = vap_bss_info->interop_ctrl;
+    //ipenable = vap_bss_info->interop_ctrl;
     ip_tel_enable = vap_bss_info->interop_tel;
-	wifi_util_dbg_print(WIFI_MON, "%s:%d ipenable:%d ipenable:%d ip_tel_enable:%d \r\n", __func__, __LINE__,vap_bss_info->interop_ctrl, ipenable, ip_tel_enable);
-    if (!has_sta_data && !has_ap_data && !ipenable) {
-        wifi_util_dbg_print(WIFI_MON,
+	wifi_util_dbg_print(WIFI_MON, "%s:%d iptelenable:%d ip_tel_enable:%d \r\n", __func__, __LINE__,vap_bss_info->interop_tel,ip_tel_enable);
+    if (!has_sta_data && !has_ap_data && !ip_tel_enable) {
+        wifi_util_info_print(WIFI_MON,
                             "All status and reason counts are zero. Skipping telemetry.\n");
         return;
     }
