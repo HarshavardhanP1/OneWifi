@@ -145,6 +145,7 @@
         PJS_OVS_BOOL(connected_building_enabled) \
         PJS_OVS_BOOL(hostap_mgt_frame_ctrl) \
         PJS_OVS_BOOL(interop_ctrl) \
+        PJS_OVS_BOOL(interop_tel) \
         PJS_OVS_BOOL(mbo_enabled) \
         PJS_OVS_BOOL(mld_enable) \
         PJS_OVS_INT(mld_id) \
@@ -2093,6 +2094,7 @@
     COLUMN(mld_addr)\
     COLUMN(mld_apply)\
     COLUMN(interop_ctrl)\
+    COLUMN(interop_tel)\
     COLUMN(mdu_enabled)\
     COLUMN(speed_tier)\
     COLUMN(repurposed_bridge_name)
@@ -3456,6 +3458,7 @@
 #define SCHEMA__Wifi_VAP_Config__connected_building_enabled "connected_building_enabled"
 #define SCHEMA__Wifi_VAP_Config__hostap_mgt_frame_ctrl "hostap_mgt_frame_ctrl"
 #define SCHEMA__Wifi_VAP_Config__interop_ctrl "interop_ctrl"
+#define SCHEMA__Wifi_VAP_Config__interop_tel "interop_tel"
 #define SCHEMA__Wifi_VAP_Config__mbo_enabled "mbo_enabled"
 #define SCHEMA__Wifi_VAP_Config__mld_enable "mld_enable"
 #define SCHEMA__Wifi_VAP_Config__mld_id "mld_id"

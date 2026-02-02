@@ -6876,6 +6876,11 @@ AccessPoint_GetParamBoolValue
         *pBool = pcfg->u.bss_info.interop_ctrl;
         return TRUE;
     }
+    
+    if (AnscEqualString(ParamName, "InteropTelemetry", TRUE)) {
+        *pBool = pcfg->u.bss_info.interop_tel;
+        return TRUE;
+    }
 
     /* CcspTraceWarning(("Unsupported parameter '%s'\n", ParamName)); */
     return FALSE;
@@ -7592,6 +7597,16 @@ AccessPoint_SetParamBoolValue
 
         wifi_util_dbg_print(WIFI_DMCLI, "%s:%d: interop_ctrl value = %d\n", __func__,
             __LINE__, vapInfo->u.bss_info.interop_ctrl);
+        return TRUE;
+    }
+    
+    if (AnscEqualString(ParamName, "InteropTelemetry", TRUE))
+    {
+        vapInfo->u.bss_info.interop_tel = bValue;
+        set_dml_cache_vap_config_changed(instance_number - 1);
+
+        wifi_util_dbg_print(WIFI_DMCLI, "%s:%d: interop_tel value = %d\n", __func__,
+            __LINE__, vapInfo->u.bss_info.interop_tel);
         return TRUE;
     }
     /* CcspTraceWarning(("Unsupported parameter '%s'\n", ParamName)); */

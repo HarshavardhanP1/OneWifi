@@ -2440,6 +2440,12 @@ INSTMSMT_PH2 -->
                             <syntax>bool</syntax>
                             <writable>true</writable>
                           </parameter>
+                          <parameter>
+                            <name>InteropTelemetry</name>
+                            <type>boolean</type>
+                            <syntax>bool</syntax>
+                            <writable>true</writable>
+                          </parameter>
                     </parameters>
                     <objects>
                        <object>

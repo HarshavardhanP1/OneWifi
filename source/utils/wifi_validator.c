@@ -1615,6 +1615,9 @@ int validate_vap(const cJSON *vap, wifi_vap_info_t *vap_info, wifi_platform_prop
 
         validate_param_bool(vap, "InteropCtrl", param);
         vap_info->u.bss_info.interop_ctrl = (param->type & cJSON_True) ? true : false;
+        
+        validate_param_bool(vap, "InteropTel", param);
+        vap_info->u.bss_info.interop_tel = (param->type & cJSON_True) ? true : false;
 
         validate_param_bool(vap, "MboEnabled", param);
         vap_info->u.bss_info.mbo_enabled = (param->type & cJSON_True) ? true : false;
