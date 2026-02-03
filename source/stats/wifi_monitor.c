@@ -655,7 +655,7 @@ void telemetry_event_code_count(interop_data_t *sta1, int vapindex, char *mac, c
     //ipenable = vap_bss_info->interop_ctrl;
     ip_tel_enable = vap_bss_info->interop_tel;
 	wifi_util_dbg_print(WIFI_MON, "%s:%d iptelenable:%d ip_tel_enable:%d \r\n", __func__, __LINE__,vap_bss_info->interop_tel,ip_tel_enable);
-    if (!has_sta_data && !has_ap_data && !ip_tel_enable) {
+    if ((!has_sta_data && !has_ap_data) || (!ip_tel_enable)) {
         wifi_util_info_print(WIFI_MON,
                             "All status and reason counts are zero. Skipping telemetry.\n");
         return;
