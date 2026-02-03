@@ -635,7 +635,7 @@ void telemetry_event_code_count(interop_data_t *sta1, int vapindex, char *mac, c
     bool xfi_enable;
 	wifi_front_haul_bss_t *vap_bss_info = Get_wifi_object_bss_parameter(vapindex);
     wifi_mgr_t *mgr = get_wifimgr_obj();
-    xfi_enable = mgr->rfc_dml_parameters.xfi_tel_enabled_rfc;
+    xfi_enable = mgr->rfc_dml_parameters.xfi_tel_enable_rfc;
     if (!mac || !ap) {
         wifi_util_info_print(WIFI_MON, "Error: MAC address is NULL\n");
         return;
@@ -657,7 +657,7 @@ void telemetry_event_code_count(interop_data_t *sta1, int vapindex, char *mac, c
     bool has_ap_data  = has_non_zero_counts(sta1->ap_status_counts, sta1->ap_reason_counts);
     //ipenable = vap_bss_info->interop_ctrl;
     ip_tel_enable = vap_bss_info->interop_tel;
-	wifi_util_dbg_print(WIFI_MON, "%s:%d iptelenable:%d ip_tel_enable:%d xfi_enabled:%d xfi_tel_enabled:%d \r\n", __func__, __LINE__,vap_bss_info->interop_tel,ip_tel_enable,xfi_enable,mgr->rfc_dml_parameters.xfi_tel_enabled_rfc);
+	wifi_util_dbg_print(WIFI_MON, "%s:%d iptelenable:%d ip_tel_enable:%d xfi_enabled:%d xfi_tel_enabled:%d \r\n", __func__, __LINE__,vap_bss_info->interop_tel,ip_tel_enable,xfi_enable,mgr->rfc_dml_parameters.xfi_tel_enable_rfc);
 	if (!xfi_enable) {
         wifi_util_info_print(WIFI_MON, "xfi_enable_rfc is disabled\n");
 		return;
