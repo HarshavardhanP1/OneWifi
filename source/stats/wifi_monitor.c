@@ -534,7 +534,7 @@ void telemetry_event_eap_ap_reason_count(interop_data_t *sta1,int vapindex, char
     get_stubs_descriptor()->t2_event_s_fn(telemetry_buff, telemetry_val);
 }
 
-void telemetry_event_eap_reason_count(interop_data_t *sta1,int vapindex, char *mac, char *ap) {
+/*void telemetry_event_eap_reason_count(interop_data_t *sta1,int vapindex, char *mac, char *ap) {
     if (!mac || !ap || !has_non_zero_eap_counts(sta1->sta_eap_reason_counts)) {
         return;
     }
@@ -553,7 +553,72 @@ void telemetry_event_eap_reason_count(interop_data_t *sta1,int vapindex, char *m
     snprintf(buff, sizeof(buff), "%s:%s:%s\n", tmp, telemetry_buff, telemetry_val);
     write_to_file(wifi_health_log, buff);
     get_stubs_descriptor()->t2_event_s_fn(telemetry_buff, telemetry_val);
+}*/
+
+
+void telemetry_event_eap_ap_reason_count(interop_data_t *sta1, int vapindex, char *mac, char *ap)
+{
+    char telemetry_buff[128]      = {0};
+    char telemetry_val[512]       = {0};
+    char telemetry_buff_grep[128] = {0};
+    char buff[1024]               = {0};
+    char tmp[128]                 = {0};
+
+    if (!sta1) {
+        wifi_util_info_print(WIFI_MON, "Error: sta1 is NULL\n");
+        return;
+    }
+    if (!mac || !ap) {
+        wifi_util_info_print(WIFI_MON, "Error: mac/ap is NULL (mac=%p ap=%p)\n", (void*)mac, (void*)ap);
+        return;
+    }
+
+    bool has_eap_data = has_non_zero_eap_counts(sta1->sta_eap_reason_counts);
+    if (!has_eap_data) {
+        wifi_util_dbg_print(WIFI_MON,
+                            "All EAP AP reason counts are zero. Skipping telemetry. (vap:%d, ap:%s, mac:%s)\n",
+                            vapindex + 1, ap, mac);
+        return;
+    }
+
+    char rc_list[256] = {0};
+    bool first = true;
+    for (int i = 0; i < EAP_REASON_COUNT_SIZE; i++) {
+        int cnt = sta1->sta_eap_reason_counts[i];
+        if (cnt != 0) {
+            int code = 13 + i;
+            size_t used = strlen(rc_list);
+            int written = snprintf(rc_list + used, sizeof(rc_list) - used,
+                                   "%s%d:%d", first ? "" : ", ", code, cnt);
+            if (written < 0 || (size_t)written >= (sizeof(rc_list) - used)) {
+                wifi_util_info_print(WIFI_MON,
+                    "Warning: rc_list buffer truncated for EAP AP reason counts.\n");
+                break;
+            }
+            first = false;
+        }
+    }
+
+    if (rc_list[0] == '\0') {
+        wifi_util_dbg_print(WIFI_MON, "No non-zero EAP AP reason codes for %s, skipping telemetry.\n", mac);
+        return;
+    }
+    snprintf(telemetry_buff, sizeof(telemetry_buff), "EAPOL_REASON_COUNTS_VAP_%d", vapindex + 1);
+
+    snprintf(telemetry_val, sizeof(telemetry_val), "%s,%s,RC:%s", ap, mac, rc_list);
+
+    strncpy(telemetry_buff_grep, telemetry_buff, sizeof(telemetry_buff_grep) - 1);
+    telemetry_buff_grep[sizeof(telemetry_buff_grep) - 1] = '\0';
+
+    wifi_util_dbg_print(WIFI_MON, "%s:%s\n", telemetry_buff_grep, telemetry_val);
+
+    get_formatted_time(tmp);
+    snprintf(buff, sizeof(buff), "%s:%s:%s\n", tmp, telemetry_buff_grep, telemetry_val);
+    write_to_file(wifi_health_log, buff);
+
+    get_stubs_descriptor()->t2_event_s_fn(telemetry_buff, telemetry_val);
 }
+
 
 static void telemetry_event_common(const char *event_name, int count, int vapindex, const char *mac, const char *ap) {
     if (!mac || !ap || count <= 0) {
