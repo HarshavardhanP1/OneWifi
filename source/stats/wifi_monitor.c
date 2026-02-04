@@ -556,7 +556,7 @@ void telemetry_event_eap_ap_reason_count(interop_data_t *sta1,int vapindex, char
 }*/
 
 
-void telemetry_event_eap_ap_reason_count(interop_data_t *sta1, int vapindex, char *mac, char *ap)
+void telemetry_event_eap_reason_count(interop_data_t *sta1, int vapindex, char *mac, char *ap)
 {
     char telemetry_buff[128]      = {0};
     char telemetry_val[512]       = {0};
@@ -569,7 +569,6 @@ void telemetry_event_eap_ap_reason_count(interop_data_t *sta1, int vapindex, cha
         return;
     }
     if (!mac || !ap) {
-        wifi_util_info_print(WIFI_MON, "Error: mac/ap is NULL (mac=%p ap=%p)\n", (void*)mac, (void*)ap);
         return;
     }
 
