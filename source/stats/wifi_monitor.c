@@ -715,7 +715,6 @@ void telemetry_event_code_count(interop_data_t *sta1, int vapindex, char *mac, c
         //telemetry_event_reason_status_count(sta1, vapindex, mac, ap);
        //telemetry_event_ap_reason_status_count(sta1, vapindex, mac, ap);
         telemetry_event_interop_extra_details(sta1, vapindex, mac, ap);
-		return;
 	}
     if (vap_bss_info == NULL) {
 	  wifi_util_dbg_print(WIFI_MON, "%s:%d vap_bss_info is null for vap_idex:%d \r\n", __func__, __LINE__, vapindex);
