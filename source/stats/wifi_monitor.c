@@ -705,14 +705,18 @@ void telemetry_event_code_count(interop_data_t *sta1, int vapindex, char *mac, c
         return;
     }
 	wifi_util_info_print(WIFI_MON, "%s:%d station found for mac :%s vap index:%d ,rssi:%d, noise:%d snr:%d channel_util:%d \n", __func__, __LINE__, mac, vapindex, sta1->rssi, sta1->noise_floor, sta1->snr, sta1->channel_util);
-    telemetry_event_access_accept_count(sta1, vapindex, mac, ap);
-    telemetry_event_eap_success_count(sta1, vapindex, mac, ap);
-    telemetry_event_eap_failure_count(sta1, vapindex, mac, ap);
-    telemetry_event_eap_reason_count(sta1, vapindex, mac, ap);
-	telemetry_event_eap_ap_reason_count(sta1, vapindex, mac, ap);
-    //telemetry_event_reason_status_count(sta1, vapindex, mac, ap);
-    //telemetry_event_ap_reason_status_count(sta1, vapindex, mac, ap);
-	telemetry_event_interop_extra_details(sta1, vapindex, mac, ap);
+	if (xfi_enable) {
+        wifi_util_info_print(WIFI_MON, "xfi_enable_rfc is enabled\n");
+        telemetry_event_access_accept_count(sta1, vapindex, mac, ap);
+        telemetry_event_eap_success_count(sta1, vapindex, mac, ap);
+        telemetry_event_eap_failure_count(sta1, vapindex, mac, ap);
+        telemetry_event_eap_reason_count(sta1, vapindex, mac, ap);
+	    telemetry_event_eap_ap_reason_count(sta1, vapindex, mac, ap);
+        //telemetry_event_reason_status_count(sta1, vapindex, mac, ap);
+       //telemetry_event_ap_reason_status_count(sta1, vapindex, mac, ap);
+        telemetry_event_interop_extra_details(sta1, vapindex, mac, ap);
+		return;
+	}
     if (vap_bss_info == NULL) {
 	  wifi_util_dbg_print(WIFI_MON, "%s:%d vap_bss_info is null for vap_idex:%d \r\n", __func__, __LINE__, vapindex);
           return;
@@ -722,11 +726,7 @@ void telemetry_event_code_count(interop_data_t *sta1, int vapindex, char *mac, c
     //ipenable = vap_bss_info->interop_ctrl;
     ip_tel_enable = vap_bss_info->interop_tel;
 	wifi_util_dbg_print(WIFI_MON, "%s:%d iptelenable:%d ip_tel_enable:%d xfi_enabled:%d xfi_tel_enabled:%d \r\n", __func__, __LINE__,vap_bss_info->interop_tel,ip_tel_enable,xfi_enable,mgr->rfc_dml_parameters.xfi_tel_enable_rfc);
-	if (!xfi_enable) {
-        wifi_util_info_print(WIFI_MON, "xfi_enable_rfc is disabled\n");
-		return;
-	}
-    if ((!has_sta_data && !has_ap_data) || (!ip_tel_enable)) {
+    if (!has_sta_data && !has_ap_data) {
         wifi_util_info_print(WIFI_MON,
                             "All status and reason counts are zero. Skipping telemetry.\n");
         return;
