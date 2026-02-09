@@ -908,6 +908,7 @@ webconfig_error_t translator_ovsdb_init(webconfig_subdoc_data_t *data)
         convert_radio_index_to_freq_band(&hal_cap->wifi_prop, radioIndx, &band);
         default_vap_info->u.bss_info.mbo_enabled = true;
         default_vap_info->u.bss_info.interop_ctrl = false;
+        default_vap_info->u.bss_info.interop_tel = false;
 
         char str[600] = {0};
         snprintf(str,sizeof(str),"%s", DEFAULT_ANQP_STR_DATA);

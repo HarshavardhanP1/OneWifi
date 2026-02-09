@@ -873,7 +873,7 @@ int upload_client_debug_stats_whix(unsigned int num_devs, int vap_index, sta_dat
     }
 
     if (vap_status) {
-        if (isVapPrivate(vap_index)) {
+        if (isVapPrivate(vap_index) || isVapHotspot(vap_index)) {
             upload_client_debug_stats_chan_stats(vap_index);
         }
         for (unsigned int i = 0; i < num_devs; i++) {
@@ -1314,7 +1314,7 @@ int upload_client_telemetry_data(wifi_app_t *app, unsigned int num_devs, unsigne
     }
     strncat(buff, "\n", 2);
     write_to_file(wifi_health_log, buff);
-    if (isVapPrivate(vap_index)) {
+    if (isVapPrivate(vap_index) || isVapHotspot(vap_index)) {
         t_str = convert_radio_index_to_band_str_g(getRadioIndexFromAp(vap_index));
         if (t_str != NULL) {
             strncpy(t_string, t_str, sizeof(t_string) - 1);
@@ -1385,7 +1385,7 @@ int upload_client_telemetry_data(wifi_app_t *app, unsigned int num_devs, unsigne
         }
         strncat(buff, "\n", 2);
         write_to_file(wifi_health_log, buff);
-        if (isVapPrivate(vap_index)) {
+        if (isVapPrivate(vap_index) || isVapHotspot(vap_index)) {
             snprintf(eventName, sizeof(eventName), "WIFI_SNR_%d_split", vap_index + 1);
             get_stubs_descriptor()->t2_event_s_fn(eventName, telemetryBuff);
         } else if (isVapLnfPsk(vap_index) && is_managed_wifi) {
@@ -1771,7 +1771,7 @@ int upload_client_telemetry_data(wifi_app_t *app, unsigned int num_devs, unsigne
     }
     strncat(buff, "\n", 2);
     write_to_file(wifi_health_log, buff);
-    if (isVapPrivate(vap_index)) {
+    if (isVapPrivate(vap_index) || isVapHotspot(vap_index)) {
         snprintf(eventName, sizeof(eventName), "GB_RSSI_%d_split", vap_index + 1);
         get_stubs_descriptor()->t2_event_s_fn(eventName, telemetryBuff);
     } else if (isVapLnfPsk(vap_index) && is_managed_wifi) {
@@ -2469,9 +2469,13 @@ void radius_eap_failure_event_marker(wifi_app_t *app, void *data)
     char eventName[1024]={0};
     char telemetry_buf[1024]={0};
     radius_eap_data_t *radius_eap_data = (radius_eap_data_t *) data;
-
+    mac_addr_str_t  sta_mac_str;
     get_formatted_time(tmp);
-
+    if (radius_eap_data->failure_reason == 0 || radius_eap_data->failure_reason ==3) {
+	 wifi_util_info_print(WIFI_APPS, "Entering %s\n", __func__);
+        return;
+    }
+    wifi_util_info_print(WIFI_APPS, "%s:%d ap index:%d failure reeason:%d \n", __func__, __LINE__,(radius_eap_data->apIndex)+1,radius_eap_data->failure_reason);
     if (radius_eap_data->failure_reason == RADIUS_ACCESS_REJECT) {
         if (isVapHotspotSecure5g(radius_eap_data->apIndex) || \
             isVapHotspotSecure6g(radius_eap_data->apIndex) || \
@@ -2480,16 +2484,18 @@ void radius_eap_failure_event_marker(wifi_app_t *app, void *data)
             app->data.u.whix.radius_failure_count[radius_eap_data->apIndex]++;
             snprintf(telemetry_buf, sizeof(telemetry_buf), "XWIFI_Radius_Failures_%d_split", (radius_eap_data->apIndex)+1);
             get_stubs_descriptor()->t2_event_d_fn(telemetry_buf, app->data.u.whix.radius_failure_count[radius_eap_data->apIndex]);
-            snprintf(eventName, sizeof(eventName), "%s XWIFI_Radius_Failures_%d_split:%d\n", tmp, (radius_eap_data->apIndex)+1, app->data.u.whix.radius_failure_count[radius_eap_data->apIndex]);
+            snprintf(eventName, sizeof(eventName), "%s XWIFI_Radius_Failures_%d_split:%d:%s\n", tmp, (radius_eap_data->apIndex)+1, app->data.u.whix.radius_failure_count[radius_eap_data->apIndex],to_mac_str(radius_eap_data->sta_mac, sta_mac_str));
             write_to_file("/rdklogs/logs/wifihealth.txt", eventName);
+	    wifi_util_info_print(WIFI_APPS, "%s:%d ap index:%d failure reeason:%d \n", __func__, __LINE__,(radius_eap_data->apIndex)+1,radius_eap_data->failure_reason);
         }
     } else if (radius_eap_data->failure_reason == EAP_FAILURE) {
         if (isVapHotspotSecure5g(radius_eap_data->apIndex) || isVapHotspotSecure6g(radius_eap_data->apIndex)) {
             app->data.u.whix.eap_failure_count[radius_eap_data->apIndex]++;
             snprintf(telemetry_buf, sizeof(telemetry_buf), "XWIFI_EAP_Failures_%d_split", (radius_eap_data->apIndex)+1);
             get_stubs_descriptor()->t2_event_d_fn(telemetry_buf, app->data.u.whix.eap_failure_count[radius_eap_data->apIndex]);
-            snprintf(eventName, sizeof(eventName), "%s XWIFI_EAP_Failures_%d_split:%d\n", tmp, (radius_eap_data->apIndex)+1, app->data.u.whix.eap_failure_count[radius_eap_data->apIndex]);
+            snprintf(eventName, sizeof(eventName), "%s XWIFI_EAP_Failures_%d_split:%d:%s\n", tmp, (radius_eap_data->apIndex)+1, app->data.u.whix.eap_failure_count[radius_eap_data->apIndex], to_mac_str(radius_eap_data->sta_mac, sta_mac_str));
             write_to_file("/rdklogs/logs/wifihealth.txt", eventName);
+	    wifi_util_info_print(WIFI_APPS, "%s:%d ap index:%d failure reeason:%d \n", __func__, __LINE__,(radius_eap_data->apIndex)+1,radius_eap_data->failure_reason);
         }
     }
 }

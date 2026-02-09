@@ -78,6 +78,7 @@ extern "C" {
 #define WIFI_COLLECT_STATS_VAP_TABLE                   "Device.WiFi.CollectStats.AccessPoint.{i}."
 #define WIFI_COLLECT_STATS_ASSOC_DEVICE_STATS          "Device.WiFi.CollectStats.AccessPoint.{i}.AssociatedDeviceStats"
 #define WIFI_NOTIFY_DENY_TCM_ASSOCIATION               "Device.WiFi.ConnectionControl.TcmClientDenyAssociation"
+#define WIFI_NOTIFY_INTEROP_DETAILS                    "Device.WiFi.AccessPoint.{i}.InteropDetails" 
 #define WIFI_CSA_BEACON_FRAME_RECEIVED                 "Device.WiFi.CSABeaconFrameRecieved"
 #define WIFI_STUCK_DETECT_FILE_NAME         "/nvram/wifi_stuck_detect"
 
@@ -222,6 +223,12 @@ typedef struct {
     int        reason;
     wifi_associated_dev3_t dev_stats;
 } auth_deauth_dev_t;
+
+typedef struct {
+    mac_address_t  sta_mac;
+    int reason;
+    int ap_index;
+} eap_data_t;
 
 #define MAX_MQTT_TOPIC_LEN 256
 
@@ -416,6 +423,7 @@ typedef struct {
         ocs_params_t        ocs_params;
         collect_stats_t     collect_stats;
         wifi_channel_status_event_t channel_status_map;
+        eap_data_t eap_data;
     } u;
 } wifi_monitor_data_t;
 
@@ -490,6 +498,7 @@ typedef struct {
     bool wpa3_compatibility_enable;
     bool memwraptool_app_rfc;
     bool csi_analytics_enabled_rfc;
+    bool xfi_tel_enable_rfc;
 } wifi_rfc_dml_parameters_t;
 
 typedef struct {
@@ -832,10 +841,22 @@ typedef struct {
     mac_address_t sta_mac;
     mac_address_t ap_mac;
     int sta_status_counts[6];
-    int sta_reason_counts[9];
+    int sta_reason_counts[5];
     int ap_status_counts[6];
-    int ap_reason_counts[9];
+    int ap_reason_counts[5];
+    int channel;
+    int variant;
+    int rssi;
+    int snr;
+    int noise_floor;
+    int channel_util;
+    int access_accept_counts;
+    int eap_success_counts;
+    int eap_failure_reason_counts;
+    int ap_eap_reason_counts[12];
+    int sta_eap_reason_counts[12];
 } interop_data_t;
+
 
 typedef struct {
     char    name[16];

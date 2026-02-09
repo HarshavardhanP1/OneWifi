@@ -449,6 +449,12 @@ WiFi_GetParamBoolValue
         *pBool = rfc_pcfg->wpa3_compatibility_enable;
         return TRUE;
     }
+    
+    if (AnscEqualString(ParamName, "Xfi_Tel_Enable", TRUE))
+    {
+        *pBool = rfc_pcfg->xfi_tel_enable_rfc;
+        return TRUE;
+    }
 
     return FALSE;
 }
@@ -1230,6 +1236,15 @@ WiFi_SetParamBoolValue
         if(bValue != rfc_pcfg->wpa3_compatibility_enable) {
             push_rfc_dml_cache_to_one_wifidb(bValue, wifi_event_type_rsn_override_rfc);
             wifi_util_dbg_print(WIFI_DMCLI,"%s:%d setting WPA3_Personal_Compatibility RFC to %d \n", __FUNCTION__, __LINE__, bValue);
+        }
+        return TRUE;
+    }
+
+    if (AnscEqualString(ParamName, "Xfi_Tel_Enable", TRUE))
+    {
+        if(bValue != rfc_pcfg->xfi_tel_enable_rfc) {
+            push_rfc_dml_cache_to_one_wifidb(bValue, wifi_event_type_xfi_tel_enable_rfc);
+            wifi_util_dbg_print(WIFI_DMCLI,"%s:%d Xfi Tel Enable rfc value set bvalue is %d\n", __FUNCTION__,__LINE__,bValue);
         }
         return TRUE;
     }
@@ -6876,6 +6891,11 @@ AccessPoint_GetParamBoolValue
         *pBool = pcfg->u.bss_info.interop_ctrl;
         return TRUE;
     }
+    
+    if (AnscEqualString(ParamName, "InteropTelemetry", TRUE)) {
+        *pBool = pcfg->u.bss_info.interop_tel;
+        return TRUE;
+    }
 
     /* CcspTraceWarning(("Unsupported parameter '%s'\n", ParamName)); */
     return FALSE;
@@ -7592,6 +7612,16 @@ AccessPoint_SetParamBoolValue
 
         wifi_util_dbg_print(WIFI_DMCLI, "%s:%d: interop_ctrl value = %d\n", __func__,
             __LINE__, vapInfo->u.bss_info.interop_ctrl);
+        return TRUE;
+    }
+    
+    if (AnscEqualString(ParamName, "InteropTelemetry", TRUE))
+    {
+        vapInfo->u.bss_info.interop_tel = bValue;
+        set_dml_cache_vap_config_changed(instance_number - 1);
+
+        wifi_util_dbg_print(WIFI_DMCLI, "%s:%d: interop_tel value = %d\n", __func__,
+            __LINE__, vapInfo->u.bss_info.interop_tel);
         return TRUE;
     }
     /* CcspTraceWarning(("Unsupported parameter '%s'\n", ParamName)); */
@@ -9904,6 +9934,11 @@ ConnectionControl_GetParamStringValue
         return 0;
     }
 
+    /*if( AnscEqualString(ParamName, "InteropDetails", TRUE))
+    {
+        snprintf(pValue,*pUlSize,pcfg->u.bss_info.interop_info);
+        return 0;
+    }*/
     return -1;
 }
 

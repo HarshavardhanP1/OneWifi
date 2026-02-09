@@ -506,6 +506,9 @@ webconfig_error_t encode_vap_common_object(const wifi_vap_info_t *vap_info,
     // InteropCtrl
     cJSON_AddBoolToObject(vap_object, "InteropCtrl",
         vap_info->u.bss_info.interop_ctrl);
+    
+    cJSON_AddBoolToObject(vap_object, "InteropTel",
+        vap_info->u.bss_info.interop_tel);
 
     cJSON_AddBoolToObject(vap_object, "MboEnabled", vap_info->u.bss_info.mbo_enabled);
 
