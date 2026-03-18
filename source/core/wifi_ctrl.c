@@ -3084,6 +3084,22 @@ UINT getRadioIndexFromAp(UINT apIndex)
     }
 }
 
+UINT getHotspotApFromRadioIndex(UINT radioIndex)
+{
+    UINT apIndex;
+    wifi_mgr_t *mgr = get_wifimgr_obj();
+
+    for (UINT index = 0; index < getTotalNumberVAPs(); index++) {
+        apIndex = VAP_INDEX(mgr->hal_cap, index);
+        if((strncmp((CHAR *)getVAPName(apIndex), "hotspot", strlen("hotspot")) == 0) &&
+               getRadioIndexFromAp(apIndex) == radioIndex ) {
+            return apIndex;
+        }
+    }
+    wifi_util_dbg_print(WIFI_CTRL,"getHotspotApFromRadioIndex not recognised for radioIndex %u!!!\n", radioIndex);
+    return 0;
+}
+
 UINT getPrivateApFromRadioIndex(UINT radioIndex)
 {
     UINT apIndex;
