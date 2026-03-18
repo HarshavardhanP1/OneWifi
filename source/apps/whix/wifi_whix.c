@@ -288,7 +288,9 @@ int upload_radio_chan_util_telemetry_whix(wifi_app_t *app, UINT radio, UINT Tx_p
     char log_buf[1024] = { 0 };
     char telemetry_buf[1024] = { 0 };
     errno_t rc = -1;
-
+    int hindex = getHotspotApFromRadioIndex(radio);
+	int pindex = getPrivateApFromRadioIndex(radio);
+	int hpindex = (hindex != 0) ? hindex : pindex;
     wifi_radio_operationParam_t *radioOperation = getRadioOperationParam(radio);
     if (radioOperation != NULL) {
         if (radioOperation->enable) {
@@ -301,10 +303,10 @@ int upload_radio_chan_util_telemetry_whix(wifi_app_t *app, UINT radio, UINT Tx_p
 
             wifi_util_dbg_print(WIFI_APPS,
                 "%s: channel Statistics results for Radio %d: Activity: %d AFTX : %d AFRX : %d "
-                "ChanUtil: %d CSTE: %d\n",
+                "ChanUtil: %d CSTE: %d hpindex :%d hindex:%d pindex:%d \n",
                 __func__, radio, app->data.u.whix.radio_activity_factor[radio], bss_Tx_cu, bss_Rx_cu,
                 app->data.u.whix.channel_util[radio],
-                app->data.u.whix.carriersensethreshold_exceeded[radio]);
+                app->data.u.whix.carriersensethreshold_exceeded[radio], hpindex, hindex, pindex);
 
             // Telemetry:
             // "header":  "CHUTIL_1_split"
@@ -317,7 +319,7 @@ int upload_radio_chan_util_telemetry_whix(wifi_app_t *app, UINT radio, UINT Tx_p
             }
             get_formatted_time(tmp);
             rc = sprintf_s(log_buf, sizeof(log_buf), "%s CHUTIL_%d_split:%s\n", tmp,
-                getPrivateApFromRadioIndex(radio) + 1, telemetry_buf);
+                hpindex + 1, telemetry_buf);
             if (rc < EOK) {
                 ERR_CHK(rc);
             }
@@ -325,7 +327,7 @@ int upload_radio_chan_util_telemetry_whix(wifi_app_t *app, UINT radio, UINT Tx_p
             wifi_util_dbg_print(WIFI_APPS, "%s", log_buf);
 
             memset(tmp, 0, sizeof(tmp));
-            sprintf(tmp, "CHUTIL_%d_split", getPrivateApFromRadioIndex(radio) + 1);
+            sprintf(tmp, "CHUTIL_%d_split", hpindex + 1);
             get_stubs_descriptor()->t2_event_s_fn(tmp, telemetry_buf);
         } else {
             wifi_util_dbg_print(WIFI_APPS, "%s : %d Radio : %d is not enabled\n", __func__, __LINE__,
