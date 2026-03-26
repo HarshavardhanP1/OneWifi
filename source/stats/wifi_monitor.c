@@ -481,6 +481,7 @@ int interop_assoc_frame_data(frame_data_t *msg) {
             return RETURN_ERR;
         }
     }
+	sta->eapol_frame_type = EAPOL_FRAME_ASSOC;
     return RETURN_OK;
 }
 
@@ -541,7 +542,6 @@ int set_auth_req_frame_data(frame_data_t *msg) {
         }
     }
 	interop_assoc_frame_data(msg);
-	sta->eapol_frame_type == EAPOL_FRAME_ASSOC;
     unsigned int radioIndex = getRadioIndexFromAp(msg->frame.ap_index);
 
     wifi_radio_operationParam_t* radioOperation = getRadioOperationParam(radioIndex);
