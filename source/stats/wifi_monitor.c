@@ -481,7 +481,6 @@ int interop_assoc_frame_data(frame_data_t *msg) {
             return RETURN_ERR;
         }
     }
-	sta->eapol_frame_type == EAPOL_FRAME_ASSOC;
     return RETURN_OK;
 }
 
@@ -542,6 +541,7 @@ int set_auth_req_frame_data(frame_data_t *msg) {
         }
     }
 	interop_assoc_frame_data(msg);
+	sta->eapol_frame_type == EAPOL_FRAME_ASSOC;
     unsigned int radioIndex = getRadioIndexFromAp(msg->frame.ap_index);
 
     wifi_radio_operationParam_t* radioOperation = getRadioOperationParam(radioIndex);
@@ -556,7 +556,7 @@ int set_auth_req_frame_data(frame_data_t *msg) {
 	sta->noise_floor = chan_stats.radio_NoiseFloor;
 	sta->snr =  msg->frame.sig_dbm - chan_stats.radio_NoiseFloor;
 	sta->channel_util = chan_stats.radio_ChannelUtilization;
-	wifi_util_dbg_print(WIFI_MON, "%s:%d rssi:%d, noise:%d snr:%d channel_util:%d \n", __func__, __LINE__, sta->rssi, sta->noise_floor, sta->snr, sta->channel_util);
+	wifi_util_dbg_print(WIFI_MON, "%s:%d rssi:%d, noise:%d snr:%d channel_util:%d eapol_frame_type:%d \n", __func__, __LINE__, sta->rssi, sta->noise_floor, sta->snr, sta->channel_util, sta->eapol_frame_type);
     return RETURN_OK;
 }
 
@@ -1777,7 +1777,7 @@ int handle_handshake_status(int ap_index, char *mac, int status)
 
 int eapol_timeout_type(int ap_index, char *mac, int type)
 {
-    wifi_util_dbg_print(WIFI_MON, "start %s:%s-%d for idx-%d\n", __func__, mac, status, ap_index);
+    wifi_util_dbg_print(WIFI_MON, "start %s:%s-%d for idx-%d\n", __func__, mac, type, ap_index);
     hash_map_t *sta_map;
     interop_data_t *sta;
     sta_map = get_interop_sta_data_map(ap_index);
