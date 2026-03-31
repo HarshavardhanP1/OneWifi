@@ -3481,8 +3481,7 @@ static const char *eapol_frame_str[] = {
     "reassociation"
 };
 
-static inline const char *
-interop_get_band_str_from_radio_index(unsigned int radioIndex)
+char *interop_get_band_str_from_radio_index(unsigned int radioIndex)
 {
     switch (radioIndex) {
         case 0:
@@ -3522,11 +3521,11 @@ void interop_log_eapol_reason_15(interop_data_t *sta,
     char telemetry_val[128];
     char buff[256];
     char tmp[64];
-    snprintf(telemetry_buff, sizeof(telemetry_buff), "%s_%d", event_name,vapindex + 1);
+    snprintf(telemetry_buff, sizeof(telemetry_buff), "%s_%d", "EAPOL_HANDSHAKE_TIMEOUT_DESC",vapindex + 1);
     snprintf(telemetry_val, sizeof(telemetry_val), "Reason=15 due to EAPOL %s timeout during %s on %s for client MAC %s", eapol_msg_str[sta->eapol_msg_type], eapol_frame_str[sta->eapol_frame_type], band_str, client_mac);
     wifi_util_info_print(WIFI_MON, "%s:%s\n", telemetry_buff, telemetry_val);
     get_formatted_time(tmp);
-    snprintf(buff, sizeof(buff), "%s:%s\n", tmp, telemetry_buff, telemetry_val);
+    snprintf(buff, sizeof(buff), "%s:%s:%s\n", tmp, telemetry_buff, telemetry_val);
     write_to_file(wifi_health_log, buff);
     get_stubs_descriptor()->t2_event_s_fn(telemetry_buff, telemetry_val);
 }
