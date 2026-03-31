@@ -706,6 +706,7 @@ static void telemetry_event_common(const char *event_name, int count, int vapind
     write_to_file(wifi_health_log, buff);
     get_stubs_descriptor()->t2_event_s_fn(telemetry_buff, telemetry_val);
 }
+
 void telemetry_event_handshake_count(interop_data_t *sta1, int vapindex, char *mac, char *ap) {
     telemetry_event_common("EAPOL_HANDSHAKE_STATUS", sta1->status, vapindex, mac, ap);
 }
@@ -872,7 +873,9 @@ static void telemetry_event_sta_ap_code_counts(interop_data_t *sta1,
         get_stubs_descriptor()->t2_event_s_fn(telemetry_buff, telemetry_val);
     }
 }
-
+void interop_log_eapol_reason_15(interop_data_t *sta,
+                                 char *client_mac,
+                                int vapindex);
 void telemetry_event_code_count(interop_data_t *sta1, int vapindex, char *mac, char *ap) {
     bool xfi_enable;
 	wifi_front_haul_bss_t *vap_bss_info = Get_wifi_object_bss_parameter(vapindex);
@@ -889,11 +892,13 @@ void telemetry_event_code_count(interop_data_t *sta1, int vapindex, char *mac, c
         telemetry_event_access_accept_count(sta1, vapindex, mac, ap);
         telemetry_event_eap_success_count(sta1, vapindex, mac, ap);
         telemetry_event_eap_failure_count(sta1, vapindex, mac, ap);
-        telemetry_event_eap_reason_count(sta1, vapindex, mac, ap);
+        //telemetry_event_eap_reason_count(sta1, vapindex, mac, ap);
 	    telemetry_event_eap_ap_reason_count(sta1, vapindex, mac, ap);
 		telemetry_event_handshake_count(sta1, vapindex, mac, ap);
         telemetry_event_interop_extra_details(sta1, vapindex, mac, ap);
 	}
+	telemetry_event_eap_reason_count(sta1, vapindex, mac, ap);
+    interop_log_eapol_reason_15(sta1, mac, vapindex);
     if (vap_bss_info == NULL) {
 	  wifi_util_dbg_print(WIFI_MON, "%s:%d vap_bss_info is null for vap_idex:%d \r\n", __func__, __LINE__, vapindex);
           return;
@@ -3463,6 +3468,69 @@ void interop_update_eapol_status_counts(interop_data_t *sta)
 	wifi_util_dbg_print(WIFI_MON, " exit %s:%d return as not m1,m3\n", __func__, __LINE__);
 }
 
+static const char *eapol_msg_str[] = {
+    "UNKNOWN",
+    "M1",
+    "M2",
+    "M3"
+};
+
+static const char *eapol_frame_str[] = {
+    "unknown",
+    "association",
+    "reassociation"
+};
+
+static inline const char *
+interop_get_band_str_from_radio_index(unsigned int radioIndex)
+{
+    switch (radioIndex) {
+        case 0:
+            return "2G";
+        case 1:
+            return "5G";
+        case 2:
+            return "6G";
+        default:
+            return "Unknown";
+    }
+}
+
+void interop_log_eapol_reason_15(interop_data_t *sta,
+                                 char *client_mac,
+                                 int vapindex)
+{
+    char *band_str;
+
+    if (!sta || !client_mac) {
+        return;
+    }
+
+    if (sta->eapol_msg_type < EAPOL_MSG_M1 ||
+        sta->eapol_msg_type > EAPOL_MSG_M3) {
+        return;
+    }
+
+    if (sta->eapol_frame_type != EAPOL_FRAME_ASSOC &&
+        sta->eapol_frame_type != EAPOL_FRAME_REASSOC) {
+        return;
+    }
+    unsigned int radioIndex;
+    radioIndex = getRadioIndexFromAp(vapindex);
+    band_str = interop_get_band_str_from_radio_index(radioIndex);
+    char telemetry_buff[64];
+    char telemetry_val[128];
+    char buff[256];
+    char tmp[64];
+    snprintf(telemetry_buff, sizeof(telemetry_buff), "%s_%d", event_name,vapindex + 1);
+    snprintf(telemetry_val, sizeof(telemetry_val), "Reason=15 due to EAPOL %s timeout during %s on %s for client MAC %s", eapol_msg_str[sta->eapol_msg_type], eapol_frame_str[sta->eapol_frame_type], band_str, client_mac);
+    wifi_util_info_print(WIFI_MON, "%s:%s\n", telemetry_buff, telemetry_val);
+    get_formatted_time(tmp);
+    snprintf(buff, sizeof(buff), "%s:%s\n", tmp, telemetry_buff, telemetry_val);
+    write_to_file(wifi_health_log, buff);
+    get_stubs_descriptor()->t2_event_s_fn(telemetry_buff, telemetry_val);
+}
+
 int a = 0;
 int ap_reason_code(int ap_index, char *src_mac, char *dest_mac, int type, int reason_code)
 {
@@ -3495,9 +3563,9 @@ int ap_reason_code(int ap_index, char *src_mac, char *dest_mac, int type, int re
         is_ap = 0;
     }
     wifi_reason_code_t reason = (wifi_reason_code_t)reason_code;
-	code = 15;
-    if (code == 15 && (a <= 2)) {
-		a= a+1;
+    code = 15;
+	if (code == 15 && (a <= 2)) {
+
         interop_update_eapol_status_counts(sta);
     }
     if (increment_reason_count(sta, reason, is_ap) == -1) {
