@@ -3565,7 +3565,7 @@ int ap_reason_code(int ap_index, char *src_mac, char *dest_mac, int type, int re
     wifi_reason_code_t reason = (wifi_reason_code_t)reason_code;
     code = 15;
 	if (code == 15 && (a <= 2)) {
-
+        a = a+1;
         interop_update_eapol_status_counts(sta);
     }
     if (increment_reason_count(sta, reason, is_ap) == -1) {
