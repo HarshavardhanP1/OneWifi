@@ -3463,12 +3463,13 @@ void interop_update_eapol_status_counts(interop_data_t *sta)
 	wifi_util_dbg_print(WIFI_MON, " exit %s:%d return as not m1,m3\n", __func__, __LINE__);
 }
 
-
+int a = 0;
 int ap_reason_code(int ap_index, char *src_mac, char *dest_mac, int type, int reason_code)
 {
     int is_ap = -1;
     hash_map_t *sta_map;
     interop_data_t *sta;
+	int code = 0;
     if (src_mac == NULL || dest_mac == NULL) {
         wifi_util_dbg_print(WIFI_MON,"%s:%d input mac adrress is NULL for ap_index:%d reason:%d\n", __func__, __LINE__, ap_index, reason_code);
         return -1;
@@ -3494,7 +3495,9 @@ int ap_reason_code(int ap_index, char *src_mac, char *dest_mac, int type, int re
         is_ap = 0;
     }
     wifi_reason_code_t reason = (wifi_reason_code_t)reason_code;
-    if (reason == 15) {
+	code = 15;
+    if (code == 15 && (a <= 2)) {
+		a= a+1;
         interop_update_eapol_status_counts(sta);
     }
     if (increment_reason_count(sta, reason, is_ap) == -1) {
