@@ -3495,39 +3495,100 @@ char *interop_get_band_str_from_radio_index(unsigned int radioIndex)
     }
 }
 
+
+void interop_decode_eapol_index(int idx,
+                           eapol_msg_type_t *msg,
+                           eapol_frame_type_t *frame)
+{
+    if (!msg || !frame) {
+        return;
+    }
+
+    /*
+     * Index mapping:
+     * 0 -> M1 ASSOC
+     * 1 -> M1 REASSOC
+     * 2 -> M2 ASSOC
+     * 3 -> M2 REASSOC
+     * 4 -> M3 ASSOC
+     * 5 -> M3 REASSOC
+     */
+
+    *msg = (idx / 2) + EAPOL_MSG_M1;
+    *frame = (idx % 2 == 0) ?
+                EAPOL_FRAME_ASSOC :
+                EAPOL_FRAME_REASSOC;
+}
+
 void interop_log_eapol_reason_15(interop_data_t *sta,
                                  char *client_mac,
                                  int vapindex)
 {
-    char *band_str;
+    unsigned int radioIndex;
+    const char *band_str;
+    int i, j;
 
     if (!sta || !client_mac) {
         return;
     }
 
-    if (sta->eapol_msg_type < EAPOL_MSG_M1 ||
-        sta->eapol_msg_type > EAPOL_MSG_M3) {
-        return;
-    }
-
-    if (sta->eapol_frame_type != EAPOL_FRAME_ASSOC &&
-        sta->eapol_frame_type != EAPOL_FRAME_REASSOC) {
-        return;
-    }
-    unsigned int radioIndex;
     radioIndex = getRadioIndexFromAp(vapindex);
     band_str = interop_get_band_str_from_radio_index(radioIndex);
-    char telemetry_buff[64];
-    char telemetry_val[128];
-    char buff[256];
-    char tmp[64];
-    snprintf(telemetry_buff, sizeof(telemetry_buff), "%s_%d", "EAPOL_HANDSHAKE_TIMEOUT_DESC",vapindex + 1);
-    snprintf(telemetry_val, sizeof(telemetry_val), "Reason=15 due to EAPOL %s timeout during %s on %s for client MAC %s", eapol_msg_str[sta->eapol_msg_type], eapol_frame_str[sta->eapol_frame_type], band_str, client_mac);
-    wifi_util_info_print(WIFI_MON, "%s:%s\n", telemetry_buff, telemetry_val);
-    get_formatted_time(tmp);
-    snprintf(buff, sizeof(buff), "%s:%s:%s\n", tmp, telemetry_buff, telemetry_val);
-    write_to_file(wifi_health_log, buff);
-    get_stubs_descriptor()->t2_event_s_fn(telemetry_buff, telemetry_val);
+
+    /* Iterate over all 6 EAPOL buckets */
+    for (i = 0; i < 6; i++) {
+
+        unsigned int count = sta->eapol_status_type_counts[i];
+        if (count == 0) {
+            continue;
+        }
+
+        eapol_msg_type_t   msg;
+        eapol_frame_type_t frame;
+
+        interop_decode_eapol_index(i, &msg, &frame);
+
+        /* Print the same log 'count' times */
+        for (j = 0; j < count; j++) {
+
+            char telemetry_buff[64];
+            char telemetry_val[128];
+            char buff[256];
+            char tmp[64];
+
+            snprintf(telemetry_buff,
+                     sizeof(telemetry_buff),
+                     "EAPOL_HANDSHAKE_TIMEOUT_DESC_%d",
+                     vapindex + 1);
+
+            snprintf(telemetry_val,
+                     sizeof(telemetry_val),
+                     "Reason=15 due to EAPOL %s timeout during %s on %s "
+                     "for client MAC %s",
+                     eapol_msg_str[msg],
+                     eapol_frame_str[frame],
+                     band_str,
+                     client_mac);
+
+            wifi_util_info_print(WIFI_MON,
+                                 "%s:%s\n",
+                                 telemetry_buff,
+                                 telemetry_val);
+
+            get_formatted_time(tmp);
+            snprintf(buff,
+                     sizeof(buff),
+                     "%s:%s:%s\n",
+                     tmp,
+                     telemetry_buff,
+                     telemetry_val);
+
+            write_to_file(wifi_health_log, buff);
+
+            get_stubs_descriptor()->t2_event_s_fn(
+                telemetry_buff, telemetry_val);
+        }
+    }
 }
 
 int a = 0;
