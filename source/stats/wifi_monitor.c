@@ -3549,7 +3549,7 @@ void interop_log_eapol_reason_15(interop_data_t *sta,
         interop_decode_eapol_index(i, &msg, &frame);
 
         /* Print the same log 'count' times */
-        for (j = 0; j < count; j++) {
+        for (j = 0; j < (int)count; j++) {
 
             char telemetry_buff[64];
             char telemetry_val[128];
