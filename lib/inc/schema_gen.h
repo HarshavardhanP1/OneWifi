@@ -195,6 +195,8 @@
         PJS_OVS_BOOL(dfsatbootup_rfc) \
         PJS_OVS_BOOL(dfs_rfc) \
         PJS_OVS_BOOL(wpa3_rfc) \
+        PJS_OVS_BOOL(new_2g_private_wpa2_rfc) \
+        PJS_OVS_BOOL(add_2g_private_vap_rfc) \
         PJS_OVS_BOOL(levl_enabled_rfc) \
         PJS_OVS_BOOL(memwraptool_app_rfc) \
         PJS_OVS_BOOL(twoG80211axEnable_rfc) \
@@ -2150,6 +2152,8 @@
     COLUMN(dfsatbootup_rfc) \
     COLUMN(dfs_rfc) \
     COLUMN(wpa3_rfc) \
+    COLUMN(new_2g_private_wpa2_rfc) \
+    COLUMN(add_2g_private_vap_rfc) \
     COLUMN(levl_enabled_rfc) \
     COLUMN(memwraptool_app_rfc) \
     COLUMN(twoG80211axEnable_rfc) \
@@ -3529,6 +3533,8 @@
 #define SCHEMA__Wifi_Rfc_Config__radiusgreylist_rfc "radiusgreylist_rfc"
 #define SCHEMA__Wifi_Rfc_Config__dfsatbootup_rfc "dfsatbootup_rfc"
 #define SCHEMA__Wifi_Rfc_Config__wpa3_rfc "wpa3_rfc"
+#define SCHEMA__Wifi_Rfc_Config__new_2g_private_wpa2_rfc "new_2g_private_wpa2_rfc"
+#define SCHEMA__Wifi_Rfc_Config__add_2g_private_vap_rfc "add_2g_private_vap_rfc"
 #define SCHEMA__Wifi_Rfc_Config__twoG80211axEnable_rfc "twoG80211axEnable_rfc"
 #define SCHEMA__Wifi_Rfc_Config__hotspot_open_2g_last_enabled "hotspot_open_2g_last_enabled"
 #define SCHEMA__Wifi_Rfc_Config__hotspot_open_5g_last_enabled "hotspot_open_5g_last_enabled"

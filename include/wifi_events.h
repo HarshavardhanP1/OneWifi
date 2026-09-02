@@ -131,6 +131,8 @@ typedef enum {
     wifi_event_type_wifi_passpoint_rfc,
     wifi_event_type_wifi_interworking_rfc,
     wifi_event_type_wpa3_rfc,
+    wifi_event_type_new_2g_private_wpa2_rfc,
+    wifi_event_type_add_2g_private_vap_rfc,
     wifi_event_type_dfs_rfc,
     wifi_event_type_dfs_atbootup_rfc,
     wifi_event_type_command_kickmac,

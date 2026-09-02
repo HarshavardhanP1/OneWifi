@@ -2800,6 +2800,100 @@ void process_wpa3_rfc(bool type)
     tgt_vap_map = NULL;
 }
 
+/* Independent of wpa3_rfc: switches ONLY the repurposed private_ssid_2g_2 VAP
+   between WPA3-PCM (type==false, default) and WPA2-Personal (type==true). No-op if the
+   VAP is not present (master flag off / not remapped). */
+void process_new_2g_private_wpa2_rfc(bool type)
+{
+    wifi_util_dbg_print(WIFI_DB,"WIFI Enter RFC Func %s: %d : bool %d\n",__FUNCTION__,__LINE__,type);
+    wifi_rfc_dml_parameters_t *rfc_param = (wifi_rfc_dml_parameters_t *) get_ctrl_rfc_parameters();
+    wifi_ctrl_t *ctrl = (wifi_ctrl_t *)get_wifictrl_obj();
+    wifi_mgr_t *mgr = get_wifimgr_obj();
+    wifi_vap_info_map_t *tgt_vap_map = NULL;
+    wifi_vap_info_t *vapInfo = NULL;
+    rdk_wifi_vap_info_t *rdk_vap_info = NULL;
+    vap_svc_t *svc;
+    char tgt_name[] = "private_ssid_2g_2";
+    int apIndex;
+    UINT rIdx, ret;
+    char update_status[128];
+
+    rfc_param->new_2g_private_wpa2_rfc = type;
+    get_wifidb_obj()->desc.update_rfc_config_fn(0, rfc_param);
+
+    apIndex = convert_vap_name_to_index(&mgr->hal_cap.wifi_prop, tgt_name);
+    if (apIndex == RETURN_ERR) {
+        wifi_util_info_print(WIFI_CTRL, "%s:%d %s not present; RFC value stored only\n", __func__, __LINE__, tgt_name);
+        return;
+    }
+
+    vapInfo = get_wifidb_vap_parameters((UINT)apIndex);
+    if (vapInfo == NULL) {
+        wifi_util_error_print(WIFI_CTRL, "%s:%d Invalid VAP for apIndex %d\n", __func__, __LINE__, apIndex);
+        return;
+    }
+
+    if ((svc = get_svc_by_name(ctrl, vapInfo->vap_name)) == NULL) {
+        wifi_util_error_print(WIFI_CTRL, "%s:%d No service for %s\n", __func__, __LINE__, vapInfo->vap_name);
+        return;
+    }
+
+    set_repurposed_2g_vap_security(&vapInfo->u.bss_info.security, type);
+    ctrl->webconfig_state |= ctrl_webconfig_state_vap_private_cfg_rsp_pending;
+
+    tgt_vap_map = (wifi_vap_info_map_t *)malloc(sizeof(wifi_vap_info_map_t));
+    if (tgt_vap_map == NULL) {
+        wifi_util_error_print(WIFI_CTRL, "%s:%d Failed to allocate memory for tgt_vap_map\n",__func__, __LINE__);
+        return;
+    }
+    memset(tgt_vap_map, 0, sizeof(wifi_vap_info_map_t));
+    tgt_vap_map->num_vaps = 1;
+    memcpy(&tgt_vap_map->vap_array[0], vapInfo, sizeof(wifi_vap_info_t));
+
+    rdk_vap_info = get_wifidb_rdk_vap_info((UINT)apIndex);
+    if (rdk_vap_info == NULL) {
+        wifi_util_error_print(WIFI_CTRL, "%s:%d Failed to get rdk vap info for index %d\n", __func__, __LINE__, apIndex);
+        free(tgt_vap_map);
+        tgt_vap_map = NULL;
+        return;
+    }
+
+    rIdx = getRadioIndexFromAp((UINT)apIndex);
+    ret = svc->update_fn(svc, rIdx, tgt_vap_map, rdk_vap_info);
+    memset(update_status, 0, sizeof(update_status));
+    snprintf(update_status, sizeof(update_status), "%s %s", vapInfo->vap_name, (ret == RETURN_OK)?"success":"fail");
+    apps_mgr_analytics_event(&ctrl->apps_mgr, wifi_event_type_webconfig, wifi_event_webconfig_hal_result, update_status);
+    if (ret != RETURN_OK) {
+        wifi_util_error_print(WIFI_DB,"%s:%d: %s service update_fn failed\n",__func__, __LINE__, vapInfo->vap_name);
+    } else {
+        wifi_util_dbg_print(WIFI_DB,"%s:%d: Updated security mode for apIndex %d secmode %d\n",__func__, __LINE__, apIndex, vapInfo->u.bss_info.security.mode);
+    }
+
+    free(tgt_vap_map);
+    tgt_vap_map = NULL;
+}
+
+/* Master on/off for the repurposed 2.4GHz private VAP (private_ssid_2g_2).
+   Cloud-managed via WebConfig (Wifi_Rfc_Config.add_2g_private_vap_rfc) and WebPA
+   (Device.WiFi.Add2GPrivateVAP), kept in sync through the shared RFC cache/OVSDB.
+   The structural add/remove of the VAP happens only at boot (interface_map remap),
+   so here we persist the RFC value AND mirror it to syscfg "Add2GPrivateVAP" so the
+   early-boot remap observes it on the NEXT reboot. */
+void process_add_2g_private_vap_rfc(bool type)
+{
+    wifi_util_dbg_print(WIFI_DB,"WIFI Enter RFC Func %s: %d : bool %d\n",__FUNCTION__,__LINE__,type);
+    wifi_rfc_dml_parameters_t *rfc_param = (wifi_rfc_dml_parameters_t *) get_ctrl_rfc_parameters();
+
+    rfc_param->add_2g_private_vap_rfc = type;
+    get_wifidb_obj()->desc.update_rfc_config_fn(0, rfc_param);
+
+    /* Mirror to syscfg for the early-boot interface remap (structural, reboot to apply). */
+    set_wifi_add_2g_private_vap_syscfg(type);
+
+    wifi_util_info_print(WIFI_CTRL, "%s:%d Add2GPrivateVAP set to %d; reboot required for the "
+        "structural VAP %s\n", __func__, __LINE__, type, type ? "add" : "remove");
+}
+
 void process_dfs_rfc(bool type)
 {
     wifi_util_dbg_print(WIFI_DB,"WIFI Enter RFC Func %s: %d : bool %d\n",__FUNCTION__,__LINE__,type);
@@ -4429,6 +4523,12 @@ void handle_command_event(wifi_ctrl_t *ctrl, void *data, unsigned int len,
         break;
     case wifi_event_type_wpa3_rfc:
         process_wpa3_rfc(*(bool *)data);
+        break;
+    case wifi_event_type_new_2g_private_wpa2_rfc:
+        process_new_2g_private_wpa2_rfc(*(bool *)data);
+        break;
+    case wifi_event_type_add_2g_private_vap_rfc:
+        process_add_2g_private_vap_rfc(*(bool *)data);
         break;
     case wifi_event_type_dfs_rfc:
         process_dfs_rfc(*(bool *)data);

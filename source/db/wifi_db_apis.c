@@ -256,6 +256,8 @@ void callback_Wifi_Rfc_Config(ovsdb_update_monitor_t *mon, struct schema_Wifi_Rf
         rfc_param->dfsatbootup_rfc = new_rec->dfsatbootup_rfc;
         rfc_param->dfs_rfc = new_rec->dfs_rfc;
         rfc_param->wpa3_rfc = new_rec->wpa3_rfc;
+        rfc_param->new_2g_private_wpa2_rfc = new_rec->new_2g_private_wpa2_rfc;
+        rfc_param->add_2g_private_vap_rfc = new_rec->add_2g_private_vap_rfc;
         rfc_param->levl_enabled_rfc = new_rec->levl_enabled_rfc;
 #ifndef ALWAYS_ENABLE_AX_2G
         rfc_param->twoG80211axEnable_rfc = new_rec->twoG80211axEnable_rfc;
@@ -1949,6 +1951,8 @@ int wifidb_get_rfc_config(UINT rfc_id, wifi_rfc_dml_parameters_t *rfc_info)
     rfc_info->dfsatbootup_rfc = pcfg->dfsatbootup_rfc;
     rfc_info->dfs_rfc = pcfg->dfs_rfc;
     rfc_info->wpa3_rfc = pcfg->wpa3_rfc;
+    rfc_info->new_2g_private_wpa2_rfc = pcfg->new_2g_private_wpa2_rfc;
+    rfc_info->add_2g_private_vap_rfc = pcfg->add_2g_private_vap_rfc;
     rfc_info->memwraptool_app_rfc = pcfg->memwraptool_app_rfc;
     rfc_info->levl_enabled_rfc = pcfg->levl_enabled_rfc;
 #ifdef ALWAYS_ENABLE_AX_2G
@@ -4841,6 +4845,10 @@ void wifidb_init_rfc_config_default(wifi_rfc_dml_parameters_t *config)
     rfc_config.wpa3_rfc = false;
 #endif
 
+    // Default WPA2 override OFF => repurposed 2.4G private VAP uses WPA3-PCM
+    rfc_config.new_2g_private_wpa2_rfc = false;
+    // Default master flag OFF => repurposed 2.4G private VAP not created
+    rfc_config.add_2g_private_vap_rfc = false;
     rfc_config.twoG80211axEnable_rfc = true;
     rfc_config.hotspot_open_2g_last_enabled = false;
     rfc_config.hotspot_open_5g_last_enabled = false;
@@ -6367,6 +6375,8 @@ int wifidb_update_rfc_config(UINT rfc_id, wifi_rfc_dml_parameters_t *rfc_param)
     cfg.dfsatbootup_rfc = rfc_param->dfsatbootup_rfc;
     cfg.dfs_rfc = rfc_param->dfs_rfc;
     cfg.wpa3_rfc = rfc_param->wpa3_rfc;
+    cfg.new_2g_private_wpa2_rfc = rfc_param->new_2g_private_wpa2_rfc;
+    cfg.add_2g_private_vap_rfc = rfc_param->add_2g_private_vap_rfc;
     cfg.memwraptool_app_rfc = rfc_param->memwraptool_app_rfc;
     cfg.levl_enabled_rfc = rfc_param->levl_enabled_rfc;
     cfg.twoG80211axEnable_rfc = rfc_param->twoG80211axEnable_rfc;
@@ -7941,6 +7951,35 @@ int wifidb_init_vap_config_default(int vap_index, wifi_vap_info_t *config,
             snprintf(cfg->u.bss_info.security.u.key.key, sizeof(cfg->u.bss_info.security.u.key.key), "%s", password);
         } else {
             snprintf(cfg->u.bss_info.security.u.key.key, sizeof(cfg->u.bss_info.security.u.key.key), "%s", INVALID_KEY);
+        }
+
+        /* Repurposed 2.4GHz private VAP: default SSID/passphrase mirror the 2.4GHz private (idx0),
+           security forced to WPA3-PCM (or WPA2 if New_2G_Private_WPA2 RFC is set). At factory default
+           the 2.4GHz private is never Open, so the Req-9 5GHz/6GHz fallback is only needed at runtime. */
+        if (get_wifi_add_2g_private_vap_rfc() && (strcmp(vap_name, "private_ssid_2g_2") == 0)) {
+            char src_name[] = "private_ssid_2g";
+            char src_ssid[128] = {0};
+            char src_pwd[128] = {0};
+            int src_idx = convert_vap_name_to_index(&wifi_hal_cap_obj->wifi_prop, src_name);
+            bool use_wpa2 = (ctrl != NULL) ? ctrl->rfc_params.new_2g_private_wpa2_rfc : false;
+
+            if (src_idx != RETURN_ERR) {
+                if (wifi_hal_get_default_ssid(src_ssid, src_idx) == 0) {
+                    snprintf(cfg->u.bss_info.ssid, sizeof(cfg->u.bss_info.ssid), "%s", src_ssid);
+                }
+                if (wifi_hal_get_default_keypassphrase(src_pwd, src_idx) == 0) {
+                    snprintf(cfg->u.bss_info.security.u.key.key, sizeof(cfg->u.bss_info.security.u.key.key), "%s", src_pwd);
+                }
+            }
+            set_repurposed_2g_vap_security(&cfg->u.bss_info.security, use_wpa2);
+            /* Req 10: keep the repurposed 2.4GHz private VAP out of the user private
+               network MLO from the moment it is created. The original 2.4/5/6GHz
+               private VAPs retain their MLO defaults. */
+            cfg->u.bss_info.mld_info.common_info.mld_enable = 0;
+            cfg->u.bss_info.mld_info.common_info.mld_id = UNDEFINED_MLD_ID;
+            wifi_util_info_print(WIFI_DB, "%s:%d: private_ssid_2g_2 default from idx %d, wpa2=%d mode=%d mld_enable=%d\n",
+                __func__, __LINE__, src_idx, use_wpa2, cfg->u.bss_info.security.mode,
+                cfg->u.bss_info.mld_info.common_info.mld_enable);
         }
 
         if (isVapLnfSecure(vap_index)) {

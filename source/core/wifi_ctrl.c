@@ -3020,6 +3020,10 @@ wifi_rfc_dml_parameters_t *get_ctrl_rfc_parameters(void)
     g_wifi_mgr->ctrl.rfc_params.dfsatbootup_rfc = g_wifi_mgr->rfc_dml_parameters.dfsatbootup_rfc;
     g_wifi_mgr->ctrl.rfc_params.dfs_rfc = g_wifi_mgr->rfc_dml_parameters.dfs_rfc;
     g_wifi_mgr->ctrl.rfc_params.wpa3_rfc = g_wifi_mgr->rfc_dml_parameters.wpa3_rfc;
+    g_wifi_mgr->ctrl.rfc_params.new_2g_private_wpa2_rfc =
+        g_wifi_mgr->rfc_dml_parameters.new_2g_private_wpa2_rfc;
+    g_wifi_mgr->ctrl.rfc_params.add_2g_private_vap_rfc =
+        g_wifi_mgr->rfc_dml_parameters.add_2g_private_vap_rfc;
     g_wifi_mgr->ctrl.rfc_params.levl_enabled_rfc = g_wifi_mgr->rfc_dml_parameters.levl_enabled_rfc;
     g_wifi_mgr->ctrl.rfc_params.twoG80211axEnable_rfc =
         g_wifi_mgr->rfc_dml_parameters.twoG80211axEnable_rfc;

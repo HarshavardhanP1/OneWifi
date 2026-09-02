@@ -140,6 +140,14 @@ bool wifi_get_param_bool_value(void *obj_ins_context, char *param_name, bool *ou
         wifi_rfc_dml_parameters_t *rfc_params =
             (wifi_rfc_dml_parameters_t *)get_wifi_db_rfc_parameters();
         *output_value = rfc_params->wpa3_rfc;
+    } else if (STR_CMP(param_name, "New_2G_Private_WPA2")) {
+        wifi_rfc_dml_parameters_t *rfc_params =
+            (wifi_rfc_dml_parameters_t *)get_wifi_db_rfc_parameters();
+        *output_value = rfc_params->new_2g_private_wpa2_rfc;
+    } else if (STR_CMP(param_name, "Add2GPrivateVAP")) {
+        wifi_rfc_dml_parameters_t *rfc_params =
+            (wifi_rfc_dml_parameters_t *)get_wifi_db_rfc_parameters();
+        *output_value = rfc_params->add_2g_private_vap_rfc;
     } else if (STR_CMP(param_name, "Log_Upload")) {
         char path[32] = { 0 };
         int val = 0;
@@ -546,6 +554,22 @@ bool wifi_set_param_bool_value(void *obj_ins_context, char *param_name, bool out
 
         if (output_value != p_rfc_cfg->wpa3_rfc) {
             push_rfc_dml_cache_to_one_wifidb(output_value, wifi_event_type_wpa3_rfc);
+        }
+    } else if (STR_CMP(param_name, "New_2G_Private_WPA2")) {
+        wifi_rfc_dml_parameters_t *p_rfc_cfg =
+            (wifi_rfc_dml_parameters_t *)get_ctrl_rfc_parameters();
+        DM_CHECK_NULL_WITH_RC(p_rfc_cfg, false);
+
+        if (output_value != p_rfc_cfg->new_2g_private_wpa2_rfc) {
+            push_rfc_dml_cache_to_one_wifidb(output_value, wifi_event_type_new_2g_private_wpa2_rfc);
+        }
+    } else if (STR_CMP(param_name, "Add2GPrivateVAP")) {
+        wifi_rfc_dml_parameters_t *p_rfc_cfg =
+            (wifi_rfc_dml_parameters_t *)get_ctrl_rfc_parameters();
+        DM_CHECK_NULL_WITH_RC(p_rfc_cfg, false);
+
+        if (output_value != p_rfc_cfg->add_2g_private_vap_rfc) {
+            push_rfc_dml_cache_to_one_wifidb(output_value, wifi_event_type_add_2g_private_vap_rfc);
         }
     } else if (STR_CMP(param_name, "Log_Upload")) {
         wifi_util_dbg_print(WIFI_DMCLI, "%s:%d Log_upload set\n", __func__, __LINE__);

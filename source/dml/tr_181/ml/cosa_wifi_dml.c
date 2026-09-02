@@ -392,6 +392,16 @@ WiFi_GetParamBoolValue
         *pBool = rfc_pcfg->wpa3_rfc;
         return TRUE;
     }
+    if (AnscEqualString(ParamName, "New_2G_Private_WPA2", TRUE))
+    {
+        *pBool = rfc_pcfg->new_2g_private_wpa2_rfc;
+        return TRUE;
+    }
+    if (AnscEqualString(ParamName, "Add2GPrivateVAP", TRUE))
+    {
+        *pBool = rfc_pcfg->add_2g_private_vap_rfc;
+        return TRUE;
+    }
     if (AnscEqualString(ParamName, "WiFi-Passpoint", TRUE))
     {
         *pBool = rfc_pcfg->wifipasspoint_rfc;
@@ -1141,6 +1151,20 @@ WiFi_SetParamBoolValue
     {
         if(bValue != rfc_pcfg->wpa3_rfc){
             push_rfc_dml_cache_to_one_wifidb(bValue,wifi_event_type_wpa3_rfc);
+        }
+        return TRUE;
+    }
+    if (AnscEqualString(ParamName, "New_2G_Private_WPA2", TRUE))
+    {
+        if(bValue != rfc_pcfg->new_2g_private_wpa2_rfc){
+            push_rfc_dml_cache_to_one_wifidb(bValue,wifi_event_type_new_2g_private_wpa2_rfc);
+        }
+        return TRUE;
+    }
+    if (AnscEqualString(ParamName, "Add2GPrivateVAP", TRUE))
+    {
+        if(bValue != rfc_pcfg->add_2g_private_vap_rfc){
+            push_rfc_dml_cache_to_one_wifidb(bValue,wifi_event_type_add_2g_private_vap_rfc);
         }
         return TRUE;
     }

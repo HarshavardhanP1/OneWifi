@@ -846,6 +846,80 @@ bool is_force_apply_true(rdk_wifi_vap_info_t *rdk_vap_info) {
     return false;
 }
 
+static inline bool is_security_mode_open(wifi_security_modes_t mode)
+{
+    return (mode == wifi_security_mode_none || mode == wifi_security_mode_enhanced_open);
+}
+
+/* Keep the repurposed 2.4GHz private VAP (private_ssid_2g_2) tracking the primary private network:
+   mirror SSID/passphrase from the 2.4GHz private VAP and force security to WPA3-PCM (WPA2 if the
+   New_2G_Private_WPA2 RFC is set). Req 9: if the 2.4GHz private is Open, mirror the 5GHz private
+   instead, or the 6GHz private if 5GHz is also Open. Rewrites the decoded data in place before apply. */
+static void sync_repurposed_2g_private_vap(webconfig_subdoc_decoded_data_t *data)
+{
+    wifi_mgr_t *mgr = get_wifimgr_obj();
+    wifi_ctrl_t *ctrl = (wifi_ctrl_t *)get_wifictrl_obj();
+    wifi_vap_info_t *tgt = NULL, *src = NULL, *s_2g = NULL, *s_5g = NULL, *s_6g = NULL;
+    char tgt_name[] = "private_ssid_2g_2";
+    unsigned int j, k;
+
+    if (data == NULL || mgr == NULL || get_wifi_add_2g_private_vap_rfc() == false) {
+        return;
+    }
+    if (convert_vap_name_to_index(&mgr->hal_cap.wifi_prop, tgt_name) == RETURN_ERR) {
+        return;
+    }
+
+    for (j = 0; j < getNumberRadios(); j++) {
+        for (k = 0; k < getNumberVAPsPerRadio(j); k++) {
+            wifi_vap_info_t *v = &data->radios[j].vaps.vap_map.vap_array[k];
+            if (strcmp(v->vap_name, tgt_name) == 0) {
+                tgt = v;
+            } else if (strcmp(v->vap_name, "private_ssid_2g") == 0) {
+                s_2g = v;
+            } else if (strcmp(v->vap_name, "private_ssid_5g") == 0) {
+                s_5g = v;
+            } else if (strcmp(v->vap_name, "private_ssid_6g") == 0) {
+                s_6g = v;
+            }
+        }
+    }
+
+    if (tgt == NULL) {
+        return; /* repurposed VAP not part of this subdoc */
+    }
+
+    src = s_2g;
+    if (src != NULL && is_security_mode_open(src->u.bss_info.security.mode)) {
+        if (s_5g != NULL && !is_security_mode_open(s_5g->u.bss_info.security.mode)) {
+            src = s_5g;
+        } else if (s_6g != NULL) {
+            src = s_6g;
+        }
+    }
+
+    if (src != NULL) {
+        snprintf(tgt->u.bss_info.ssid, sizeof(tgt->u.bss_info.ssid), "%s", src->u.bss_info.ssid);
+        snprintf(tgt->u.bss_info.security.u.key.key, sizeof(tgt->u.bss_info.security.u.key.key), "%s",
+            src->u.bss_info.security.u.key.key);
+    }
+
+    set_repurposed_2g_vap_security(&tgt->u.bss_info.security,
+        (ctrl != NULL) ? ctrl->rfc_params.new_2g_private_wpa2_rfc : false);
+
+    /* Req 10: the repurposed 2.4GHz private VAP must never join the user private
+       network MLO. Force it out of any MLD group here. This runs after
+       update_mld_groups() (see webconfig subdoc handlers) and just before the HAL
+       apply, so it is the authoritative final MLO state for this VAP. The original
+       2.4/5/6GHz private VAPs are untouched and keep their MLO configuration. */
+    tgt->u.bss_info.mld_info.common_info.mld_enable = false;
+    tgt->u.bss_info.mld_info.common_info.mld_id = UNDEFINED_MLD_ID;
+
+    wifi_util_info_print(WIFI_CTRL, "%s:%d: synced private_ssid_2g_2 from %s (ssid=%s mode=%d mld_enable=%d)\n",
+        __func__, __LINE__, (src != NULL) ? src->vap_name : "none", tgt->u.bss_info.ssid,
+        tgt->u.bss_info.security.mode, tgt->u.bss_info.mld_info.common_info.mld_enable);
+}
+
 int webconfig_hal_vap_apply_by_name(wifi_ctrl_t *ctrl, webconfig_subdoc_decoded_data_t *data, char **vap_names, unsigned int size)
 {
     unsigned int i, j, k;
@@ -861,6 +935,8 @@ int webconfig_hal_vap_apply_by_name(wifi_ctrl_t *ctrl, webconfig_subdoc_decoded_
     rdk_wifi_vap_info_t *mgr_rdk_vap_info, *rdk_vap_info;
     rdk_wifi_vap_info_t tgt_rdk_vap_info;
     int ret = 0;
+
+    sync_repurposed_2g_private_vap(data);
 
     for (i = 0; i < size; i++) {
 

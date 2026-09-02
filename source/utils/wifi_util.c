@@ -4997,6 +4997,27 @@ void apply_wpa3_transition_encr_policy(wifi_vap_security_t *security_info)
 #endif /* CONFIG_IEEE80211BE */
 }
 
+/* Force the security of the repurposed 2.4GHz private VAP (private_ssid_2g_2).
+   Default is WPA3-PCM (compatibility). If New_2G_Private_WPA2 RFC is set, use WPA2-Personal.
+   This is independent of the platform-wide WPA3 RFC (per requirement). */
+void set_repurposed_2g_vap_security(wifi_vap_security_t *security_info, bool use_wpa2)
+{
+    if (security_info == NULL) {
+        return;
+    }
+
+    if (use_wpa2) {
+        security_info->mode = wifi_security_mode_wpa2_personal;
+        security_info->u.key.type = wifi_security_key_type_psk;
+        security_info->mfp = wifi_mfp_cfg_disabled;
+        apply_wpa2_personal_encr_policy(security_info);
+    } else {
+        security_info->mode = wifi_security_mode_wpa3_compatibility;
+        security_info->u.key.type = wifi_security_key_type_psk_sae;
+        security_info->mfp = wifi_mfp_cfg_disabled;
+    }
+}
+
 int get_mesh_sta_mac_address_for_radio(wifi_platform_property_t *wifi_prop, unsigned int radio_index, mac_address_t mac)
 {
     int index;

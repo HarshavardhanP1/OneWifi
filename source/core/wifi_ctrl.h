@@ -342,6 +342,8 @@ void deinit_ctrl_monitor(wifi_ctrl_t *ctrl);
 bool is_db_consolidated();
 bool is_db_backup_required();
 bool is_devtype_pod();
+bool get_wifi_add_2g_private_vap_rfc(void);
+void set_wifi_add_2g_private_vap_syscfg(bool enable);
 
 UINT getRadioIndexFromAp(UINT apIndex);
 UINT getPrivateApFromRadioIndex(UINT radioIndex);

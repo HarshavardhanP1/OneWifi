@@ -135,6 +135,7 @@ struct ovs_vapname_cloudvifname_map  cloud_vif_map[] = {
     {"wl0.3", "hotspot_open_2g"},
     {"wl0.4", "lnf_psk_2g"},
     {"wl0.5", "hotspot_secure_2g"},
+    {"wl0.5", "private_ssid_2g_2"},
     {"wl0.6", "lnf_radius_2g"},
     {"wl0.7", "mesh_backhaul_2g"},
     {"wl1",   "mesh_sta_5g"},

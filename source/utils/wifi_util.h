@@ -488,6 +488,7 @@ bool is_zero_mac(const uint8_t *mac);
 bool is_valid_encr_for_mode(wifi_security_modes_t mode, wifi_encryption_method_t encr);
 void apply_wpa2_personal_encr_policy(wifi_vap_security_t *security_info);
 void apply_wpa3_transition_encr_policy(wifi_vap_security_t *security_info);
+void set_repurposed_2g_vap_security(wifi_vap_security_t *security_info, bool use_wpa2);
 int get_mesh_sta_mac_address_for_radio(wifi_platform_property_t *wifi_prop, unsigned int radio_index, mac_address_t mac);
 #ifdef __cplusplus
 }

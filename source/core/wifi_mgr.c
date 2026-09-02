@@ -38,6 +38,7 @@
 #endif
 #include "util.h"
 #include "misc.h"
+#include <syscfg/syscfg.h>
 
 wifi_mgr_t g_wifi_mgr;
 wifi_misc_t g_misc;
@@ -97,6 +98,76 @@ bool is_devtype_pod()
     return (g_wifi_mgr.ctrl.dev_type == dev_subtype_pod);
 }
 
+/* Master on/off for the repurposed 2.4GHz private VAP (private_ssid_2g_2).
+   syscfg-backed so it is readable early at boot (before DB load) and persists across
+   reboot/FW upgrade; factory reset clears syscfg -> defaults to disabled. Structural (reboot to apply). */
+bool get_wifi_add_2g_private_vap_rfc(void)
+{
+    static int cached = -1;
+    char buf[8] = {0};
+
+    if (cached == -1) {
+        cached = 0;
+        if (syscfg_init() == 0 &&
+            syscfg_get(NULL, "Add2GPrivateVAP", buf, sizeof(buf)) == 0 &&
+            (strcmp(buf, "true") == 0 || strcmp(buf, "1") == 0)) {
+            cached = 1;
+        }
+    }
+
+    return (cached == 1);
+}
+
+/* Persist the master flag to syscfg so the early-boot interface remap
+   (get_wifi_add_2g_private_vap_rfc) observes it on the NEXT reboot. Called from
+   process_add_2g_private_vap_rfc() whenever the flag is changed via WebPA/RFC.
+   The structural VAP add/remove only takes effect after reboot; the value itself
+   persists immediately across reboot/FW upgrade (factory reset clears syscfg). */
+void set_wifi_add_2g_private_vap_syscfg(bool enable)
+{
+    if (syscfg_init() == 0) {
+        syscfg_set_commit(NULL, "Add2GPrivateVAP", enable ? "true" : "false");
+    }
+}
+
+/* Master flag ON: repurpose the XfinityWiFi Secure 2.4GHz VAP (hotspot_secure_2g) into a second
+   private 2.4GHz VAP (private_ssid_2g_2) by rewriting its interface_map entry BEFORE the radio
+   snapshot and DB load. Physical fields (interface_name/phy_index/rdk_radio_index/index) are kept;
+   name-prefix classification then treats it as private everywhere. */
+static void remap_repurposed_2g_private_vap(wifi_hal_capability_t *hal_cap)
+{
+    wifi_interface_name_idex_map_t *map, *src = NULL, *tgt = NULL;
+    unsigned int i, count;
+
+    if (hal_cap == NULL || get_wifi_add_2g_private_vap_rfc() == false) {
+        return;
+    }
+
+    map = hal_cap->wifi_prop.interface_map;
+    count = (unsigned int)(sizeof(hal_cap->wifi_prop.interface_map) / sizeof(wifi_interface_name_idex_map_t));
+    for (i = 0; i < count; i++) {
+        if (strcmp((char *)map[i].vap_name, "private_ssid_2g") == 0) {
+            src = &map[i];
+        } else if (strcmp((char *)map[i].vap_name, "hotspot_secure_2g") == 0) {
+            tgt = &map[i];
+        }
+    }
+
+    if (src == NULL || tgt == NULL) {
+        wifi_util_error_print(WIFI_CTRL, "%s:%d Add2GPrivateVAP ON but src/tgt VAP not found\n", __func__, __LINE__);
+        return;
+    }
+
+    strncpy((char *)tgt->bridge_name, (char *)src->bridge_name, sizeof(tgt->bridge_name) - 1);
+    tgt->bridge_name[sizeof(tgt->bridge_name) - 1] = '\0';
+    tgt->vlan_id = src->vlan_id;
+    strncpy((char *)tgt->vap_name, "private_ssid_2g_2", sizeof(tgt->vap_name) - 1);
+    tgt->vap_name[sizeof(tgt->vap_name) - 1] = '\0';
+
+    wifi_util_info_print(WIFI_CTRL, "%s:%d Repurposed hotspot_secure_2g (idx %u) -> private_ssid_2g_2 bridge %s vlan %d\n",
+        __func__, __LINE__, tgt->index, tgt->bridge_name, tgt->vlan_id);
+}
+
 int init_wifi_hal()
 {
     int ret = RETURN_OK;
@@ -117,6 +188,10 @@ int init_wifi_hal()
         wifi_util_error_print(WIFI_CTRL,"RDK_LOG_ERROR, %s wifi_getHalCapability returned with error %d\n", __FUNCTION__, ret);
         return RETURN_ERR;
     }
+
+    /* Repurpose idx8 before the radio snapshot/DB load consume the interface_map. */
+    remap_repurposed_2g_private_vap(&g_wifi_mgr.hal_cap);
+
     return RETURN_OK;
 }
 

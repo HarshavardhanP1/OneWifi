@@ -344,6 +344,18 @@
             <writable>true</writable>
         </parameter>
         <parameter>
+            <name>New_2G_Private_WPA2</name>
+            <type>boolean</type>
+            <syntax>bool</syntax>
+            <writable>true</writable>
+        </parameter>
+        <parameter>
+            <name>Add2GPrivateVAP</name>
+            <type>boolean</type>
+            <syntax>bool</syntax>
+            <writable>true</writable>
+        </parameter>
+        <parameter>
             <name>Log_Enable</name>
             <type>string</type>
             <syntax>string</syntax>

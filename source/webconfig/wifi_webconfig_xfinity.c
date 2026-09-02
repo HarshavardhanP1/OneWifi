@@ -278,6 +278,16 @@ webconfig_error_t decode_xfinity_subdoc(webconfig_t *config, webconfig_subdoc_da
     for (i = 0; i < size; i++) {
         obj_vap = cJSON_GetArrayItem(obj_vaps, i);
         name = cJSON_GetStringValue(cJSON_GetObjectItem(obj_vap, "VapName"));
+        /* Req 5: hotspot_secure_2g is repurposed as the private VAP private_ssid_2g_2 when the feature
+           is active; reject any Xfinity hotspot config targeting it. Derived from the (remapped) map. */
+        if (name != NULL && strcmp(name, "hotspot_secure_2g") == 0) {
+            char repurposed_name[] = "private_ssid_2g_2";
+            if (convert_vap_name_to_index(&params->hal_cap.wifi_prop, repurposed_name) >= 0) {
+                wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: Rejecting Xfinity hotspot config for repurposed VAP %s\n",
+                        __func__, __LINE__, name);
+                continue;
+            }
+        }
         radio_index = convert_vap_name_to_radio_array_index(&params->hal_cap.wifi_prop, name);
         vap_array_index = convert_vap_name_to_array_index(&params->hal_cap.wifi_prop, name);
         if (((int)radio_index < 0) || ((int)vap_array_index < 0)) {

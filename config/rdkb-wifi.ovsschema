@@ -1727,6 +1727,24 @@
             "max": 1
           }
         },
+        "new_2g_private_wpa2_rfc": {
+          "type": {
+            "key": {
+              "type": "boolean"
+            },
+            "min": 0,
+            "max": 1
+          }
+        },
+        "add_2g_private_vap_rfc": {
+          "type": {
+            "key": {
+              "type": "boolean"
+            },
+            "min": 0,
+            "max": 1
+          }
+        },
         "levl_enabled_rfc": {
             "type": {
                 "key": {

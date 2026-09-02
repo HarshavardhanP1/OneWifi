@@ -614,6 +614,10 @@ typedef struct {
     bool link_quality_rfc;
     bool xfi_tel_enable_rfc;
     bool multiap_rfc;
+    // WPA2 override for the repurposed 2.4GHz private VAP (default false => WPA3-PCM)
+    bool new_2g_private_wpa2_rfc;
+    // Master on/off for adding the repurposed 2.4GHz private VAP (default false => feature off)
+    bool add_2g_private_vap_rfc;
 } wifi_rfc_dml_parameters_t;
 
 typedef struct {
